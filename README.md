@@ -1,3 +1,8 @@
+# MetricFlow
+
+Short description
+helping different level users analyze cutomed strategies by leveraging AI along with core instriciate metric data for primitive defi protols or defi lego and support one-clieck efficiency for complex operations
+
 ## Background
 
 The DeFi market has matured significantly with the emergence of diverse protocols including AMMs, lending platforms, route aggregators, and automated yield optimization strategies. However, significant gaps remain for both retail and institutional users, from beginners to experienced traders.
@@ -57,3 +62,9 @@ cross-chain plugin if needed
 ### 4. Simple and efficient execution
 
 Apply Account Abstraction (EIP-4337) to simplify complex smart contract interactions and help users efficiently execute their strategies.
+
+## Core Desgin
+
+### 1. AI_Agent_Architecture_Draft
+
+![AI_Agent_Architecture_Draft](AI/AI_Agent_Architecture_draft.png)
