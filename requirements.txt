@@ -1,0 +1,6 @@
+uagents==0.22.10
+aiohttp==3.13.0
+cosmpy==0.11.1
+pydantic==2.12.1
+uagents-core==0.3.11
+uvicorn==0.37.0
