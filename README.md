@@ -67,6 +67,10 @@ ASI_ONE_API_KEY=your_asi_one_api_key_here
 
 3. **Test queries**:
 
+### 🎯 Risk Profile & Investment Recommendations
+
+- "I'm a conservative investor with low risk tolerance. What should I invest in?"
+
 ## Test Agents using Chat with Agent button on Agentverse
 
 ## 📊 Knowledge Graph Structure

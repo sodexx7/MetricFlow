@@ -4,3 +4,5 @@ venv
 .env.example
 .env
 private_keys.json
+
+todo.md
