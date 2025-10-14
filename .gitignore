@@ -1,6 +1,8 @@
 
 venv
 
+metta/__pycache__
+
 .env.example
 .env
 private_keys.json
