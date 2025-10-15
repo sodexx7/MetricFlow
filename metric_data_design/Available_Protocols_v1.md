@@ -1,4 +1,4 @@
-## Available Protocols(todo add another chain?)
+## Available Protocols(Arbitrum + base)
 
 | Protocol   | Type        | Network  | Primary Risk Vectors                        |
 | ---------- | ----------- | -------- | ------------------------------------------- |

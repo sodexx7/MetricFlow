@@ -17,12 +17,12 @@ from uagents_core.contrib.protocols.chat import (
 )
 
 from metta.investment_rag import InvestmentRAG
-from metta.knowledge import initialize_investment_knowledge
+from metta.OnChainFinance_knowledge import initialize_OnChainFinance_knowledge
+from metta.protocols_knowledge import initialize_protocols_knowledge
 from metta.utils import LLM, process_query
 
 load_dotenv()
-
-agent = Agent(name="Financial Investment Advisor", port=8008, mailbox=True, publish_agent_details=True)
+agent = Agent(name="On Chain Finance Advisor", port=8008, mailbox=True, publish_agent_details=True)
 
 class InvestmentQuery(Model):
     query: str
@@ -40,7 +40,8 @@ def create_text_chat(text: str, end_session: bool = False) -> ChatMessage:
     )
 
 metta = MeTTa()
-initialize_investment_knowledge(metta)
+initialize_OnChainFinance_knowledge(metta)
+initialize_protocols_knowledge(metta)
 rag = InvestmentRAG(metta)
 llm = LLM(api_key=os.getenv("ASI_ONE_API_KEY"))
 
@@ -60,7 +61,8 @@ async def handle_message(ctx: Context, sender: str, msg: ChatMessage):
             continue
         elif isinstance(item, TextContent):
             user_query = item.text.strip()
-            ctx.logger.info(f"Got an investment query from {sender}: {user_query}")
+            
+            ctx.logger.info(f"Got On Chain Finance advice from {sender}: {user_query}")
             
             try:
                 response = process_query(user_query, rag, llm)
