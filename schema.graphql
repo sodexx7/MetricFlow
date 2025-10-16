@@ -1,0 +1,80 @@
+type ETHUSDC005_Burn {
+  id: ID!
+  owner: String!
+  tickLower: BigInt!
+  tickUpper: BigInt!
+  amount: BigInt!
+  amount0: BigInt!
+  amount1: BigInt!
+}
+
+type ETHUSDC005_Collect {
+  id: ID!
+  owner: String!
+  recipient: String!
+  tickLower: BigInt!
+  tickUpper: BigInt!
+  amount0: BigInt!
+  amount1: BigInt!
+}
+
+type ETHUSDC005_CollectProtocol {
+  id: ID!
+  sender: String!
+  recipient: String!
+  amount0: BigInt!
+  amount1: BigInt!
+}
+
+type ETHUSDC005_Flash {
+  id: ID!
+  sender: String!
+  recipient: String!
+  amount0: BigInt!
+  amount1: BigInt!
+  paid0: BigInt!
+  paid1: BigInt!
+}
+
+type ETHUSDC005_IncreaseObservationCardinalityNext {
+  id: ID!
+  observationCardinalityNextOld: BigInt!
+  observationCardinalityNextNew: BigInt!
+}
+
+type ETHUSDC005_Initialize {
+  id: ID!
+  sqrtPriceX96: BigInt!
+  tick: BigInt!
+}
+
+type ETHUSDC005_Mint {
+  id: ID!
+  sender: String!
+  owner: String!
+  tickLower: BigInt!
+  tickUpper: BigInt!
+  amount: BigInt!
+  amount0: BigInt!
+  amount1: BigInt!
+}
+
+type ETHUSDC005_SetFeeProtocol {
+  id: ID!
+  feeProtocol0Old: BigInt!
+  feeProtocol1Old: BigInt!
+  feeProtocol0New: BigInt!
+  feeProtocol1New: BigInt!
+}
+
+type ETHUSDC005_Swap {
+  id: ID!
+  sender: String!
+  recipient: String!
+  amount0: BigInt!
+  amount1: BigInt!
+  sqrtPriceX96: BigInt!
+  liquidity: BigInt!
+  tick: BigInt!
+}
+
