@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=./node_modules/envio/evm.schema.json
 name: envio-indexer
 networks:
-  - id: 42162
+  - id: 42161
     start_block: 390116357
     contracts:
       - name: ETHUSDC005

@@ -77,4 +77,3 @@ type ETHUSDC005_Swap {
   liquidity: BigInt!
   tick: BigInt!
 }
-
