@@ -1,8 +1,5 @@
 import assert from "assert";
-import { 
-  TestHelpers,
-  ETHUSDC005_Burn
-} from "generated";
+import { TestHelpers, ETHUSDC005_Burn } from "generated";
 const { MockDb, ETHUSDC005 } = TestHelpers;
 
 describe("ETHUSDC005 contract Burn event tests", () => {
@@ -10,7 +7,9 @@ describe("ETHUSDC005 contract Burn event tests", () => {
   const mockDb = MockDb.createMockDb();
 
   // Creating mock for ETHUSDC005 contract Burn event
-  const event = ETHUSDC005.Burn.createMockEvent({/* It mocks event fields with default values. You can overwrite them if you need */});
+  const event = ETHUSDC005.Burn.createMockEvent({
+    /* It mocks event fields with default values. You can overwrite them if you need */
+  });
 
   it("ETHUSDC005_Burn is created correctly", async () => {
     // Processing the event
@@ -35,6 +34,10 @@ describe("ETHUSDC005 contract Burn event tests", () => {
       amount1: event.params.amount1,
     };
     // Asserting that the entity in the mock database is the same as the expected entity
-    assert.deepEqual(actualETHUSDC005Burn, expectedETHUSDC005Burn, "Actual ETHUSDC005Burn should be the same as the expectedETHUSDC005Burn");
+    assert.deepEqual(
+      actualETHUSDC005Burn,
+      expectedETHUSDC005Burn,
+      "Actual ETHUSDC005Burn should be the same as the expectedETHUSDC005Burn"
+    );
   });
 });

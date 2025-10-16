@@ -1,5 +1,5 @@
 /*
- * Please refer to https://docs.envio.dev for a thorough guide on all Envio indexer features
+ *  Please refer to https://docs.envio.dev for a thorough guide on all Envio indexer features
  */
 import {
   ETHUSDC005,
@@ -68,15 +68,17 @@ ETHUSDC005.Flash.handler(async ({ event, context }) => {
   context.ETHUSDC005_Flash.set(entity);
 });
 
-ETHUSDC005.IncreaseObservationCardinalityNext.handler(async ({ event, context }) => {
-  const entity: ETHUSDC005_IncreaseObservationCardinalityNext = {
-    id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
-    observationCardinalityNextOld: event.params.observationCardinalityNextOld,
-    observationCardinalityNextNew: event.params.observationCardinalityNextNew,
-  };
+ETHUSDC005.IncreaseObservationCardinalityNext.handler(
+  async ({ event, context }) => {
+    const entity: ETHUSDC005_IncreaseObservationCardinalityNext = {
+      id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
+      observationCardinalityNextOld: event.params.observationCardinalityNextOld,
+      observationCardinalityNextNew: event.params.observationCardinalityNextNew,
+    };
 
-  context.ETHUSDC005_IncreaseObservationCardinalityNext.set(entity);
-});
+    context.ETHUSDC005_IncreaseObservationCardinalityNext.set(entity);
+  }
+);
 
 ETHUSDC005.Initialize.handler(async ({ event, context }) => {
   const entity: ETHUSDC005_Initialize = {
