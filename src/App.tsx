@@ -93,12 +93,12 @@ export default function App() {
       <div className="flex-1 overflow-hidden">
         {layoutMode === 'chat-only' ? (
           <div className="h-full max-w-4xl mx-auto">
-            <ChatInterface onLayoutChange={setLayoutMode} />
+            <ChatInterface />
           </div>
         ) : (
           <ResizablePanelGroup direction="horizontal">
             <ResizablePanel defaultSize={50} minSize={30}>
-              <ChatInterface onLayoutChange={setLayoutMode} />
+              <ChatInterface />
             </ResizablePanel>
             <ResizableHandle withHandle />
             <ResizablePanel defaultSize={50} minSize={30}>
