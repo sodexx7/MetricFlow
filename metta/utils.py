@@ -1,6 +1,8 @@
 import json
 from openai import OpenAI
 from .investment_rag import InvestmentRAG
+from .protocols_knowledge import initialize_protocols_knowledge
+from hyperon import MeTTa
 
 class LLM:
     def __init__(self, api_key):
@@ -19,14 +21,16 @@ class LLM:
 
 def get_intent_and_keyword(query, llm):
     """Use ASI:One API to classify On Chain Finance advice intent and extract a keyword."""
+#    'goal_strategy', 
     prompt = (
         f"Given the investment query: '{query}'\n"
-        "Classify the intent as one of: 'risk_profile', 'risk_level', 'expected_return', 'goal_strategy', 'on_chain_trading_101', 'faq_beginner', 'faq_researcher', 'faq_trader', 'faq_institutional', 'protocol_info', 'protocol_metrics', 'protocol_risks', 'protocol_operations', or 'unknown'.\n"
+        "Classify the intent as one of: 'risk_profile', 'risk_level', 'expected_return', 'specific_strategy', 'on_chain_trading_101', 'faq_beginner', 'faq_researcher', 'faq_trader', 'faq_institutional', 'protocol_info', 'protocol_metrics', 'protocol_risks', 'protocol_operations', or 'unknown'.\n"
         "Extract the most relevant keyword from the query:\n"
         "- For risk_profile: conservative, moderate, aggressive\n"
         "- For investment types: lending, staking, yield_farming, derivatives, etc.\n"
         "- For protocols: uniswap_v3, aave, gmx, curve, yearn, etc.\n"
-        "- For goals: passive_income, speculation, wealth_preservation, etc.\n"
+        # "- For goals: passive_income, speculation, wealth_preservation, etc.\n"
+        "- For specific strategy: passive_income, speculation, wealth_preservation, etc.\n"
         "- For concepts: impermanent_loss, gas_fees, smart_contract_risk, etc.\n"
         "Return *only* the result in JSON format like this, with no additional text:\n"
         "{\n"
@@ -72,6 +76,156 @@ def generate_knowledge_response(query, intent, keyword, llm):
     else:
         return None
     return llm.create_completion(prompt)
+
+def query_protocols_for_strategy(strategy_keyword, llm: LLM):
+    """Query available protocols for a specific strategy and get concrete strategy recommendations."""
+    try:
+        # Initialize MeTTa space with protocols knowledge
+        metta = MeTTa()
+        initialize_protocols_knowledge(metta)
+        
+        # Get available protocols for the strategy
+        available_protocols = []
+        
+        # Hard-coded strategy to protocol mapping based on protocols_knowledge.py
+        strategy_to_protocols = {
+            'yield_farming': ['uniswap_v3', 'balancer', 'convex'],
+            'lending': ['aave', 'compound', 'morpho', 'euler'],
+            'stablecoin_lp': ['curve'],
+            'yield_vaults': ['yearn'],
+            'yield_trading': ['pendle'],
+            'perpetuals': ['gmx', 'dydx'],
+            'synthetic_assets': ['synthetix']
+        }
+        
+        # Find protocols for the requested strategy
+        if strategy_keyword in strategy_to_protocols:
+            available_protocols = strategy_to_protocols[strategy_keyword]
+        else:
+            # Check for partial matches or related strategies
+            for strategy, protocols in strategy_to_protocols.items():
+                if strategy_keyword.lower() in strategy.lower() or strategy.lower() in strategy_keyword.lower():
+                    available_protocols.extend(protocols)
+        
+        if not available_protocols:
+            # Generate suggestion using AI for unknown strategy
+            all_strategies = list(strategy_to_protocols.keys())
+            all_protocols = list(set([p for protocols in strategy_to_protocols.values() for p in protocols]))
+            
+            prompt = (
+                f"Strategy requested: '{strategy_keyword}'\n"
+                f"Available strategies in our protocol knowledge: {all_strategies}\n"
+                f"Available protocols: {all_protocols}\n"
+                "Suggest the most relevant protocols and concrete strategies for the requested strategy. "
+                "Return only a JSON object with 'protocols' array and 'concrete_strategies' array."
+            )
+            ai_response = llm.create_completion(prompt, max_tokens=300)
+            try:
+                suggestion = json.loads(ai_response)
+                return suggestion
+            except json.JSONDecodeError:
+                return {
+                    "protocols": all_protocols[:3],  # Limit to top 3
+                    "concrete_strategies": [f"No specific protocols found for '{strategy_keyword}'. Consider exploring lending, yield farming, or AMM strategies."]
+                }
+        
+        # Get additional protocol information for found protocols
+        protocol_details = []
+        
+        # Protocol type mapping
+        protocol_types = {
+            'uniswap_v3': 'amm', 'curve': 'amm', 'balancer': 'amm',
+            'aave': 'lending', 'compound': 'lending', 'morpho': 'lending', 'euler': 'lending',
+            'yearn': 'yield', 'convex': 'yield', 'pendle': 'yield',
+            'gmx': 'derivatives', 'synthetix': 'derivatives', 'dydx': 'derivatives'
+        }
+        
+        # Protocol metrics mapping (simplified)
+        protocol_metrics = {
+            'uniswap_v3': 'trading_pair, current_price, liquidity_volume, impermanent_loss',
+            'curve': 'trading_pair, current_price, liquidity_volume, depeg_events',
+            'balancer': 'trading_pair, current_price, liquidity_volume, weight_changes',
+            'aave': 'supply_rate, borrow_rate, utilization_rate, liquidation_threshold',
+            'compound': 'supply_rate, borrow_rate, utilization_rate, governance_proposals',
+            'morpho': 'supply_rate, borrow_rate, peer_to_peer_matching',
+            'euler': 'supply_rate, borrow_rate, tier_status',
+            'yearn': 'vault_apy, strategy_performance, harvest_frequency',
+            'convex': 'boosted_rewards, vote_locked_cvx, curve_gauge_weights',
+            'pendle': 'yield_token_price, principal_token_price, implied_apy',
+            'gmx': 'open_interest, funding_rate, liquidation_price, pnl',
+            'synthetix': 'debt_pool_composition, collateralization_ratio',
+            'dydx': 'perpetual_funding, position_size, margin_ratio'
+        }
+        
+        # Protocol operations mapping
+        protocol_operations = {
+            'uniswap_v3': 'swap, liquidity_provision, fee_collection',
+            'curve': 'swap, liquidity_provision, gauge_voting',
+            'balancer': 'swap, liquidity_provision, weighted_pools',
+            'aave': 'supply, borrow, liquidate, flashloan',
+            'compound': 'supply, borrow, liquidate, governance_voting',
+            'morpho': 'supply, borrow, peer_to_peer_matching',
+            'euler': 'supply, borrow, liquidate, risk_management',
+            'yearn': 'deposit, withdraw, harvest, strategy_execution',
+            'convex': 'stake, boost_rewards, vote_locking',
+            'pendle': 'split_yield, trade_yield, liquidity_provision',
+            'gmx': 'open_position, close_position, liquidate',
+            'synthetix': 'mint_synths, trade_synths, stake_snx',
+            'dydx': 'open_perpetual, close_perpetual, margin_trading'
+        }
+        
+        for protocol in available_protocols[:5]:  # Limit to top 5 protocols
+            protocol_details.append({
+                "name": protocol,
+                "type": protocol_types.get(protocol, "unknown"),
+                "metrics": protocol_metrics.get(protocol, "No metrics available"),
+                "operations": protocol_operations.get(protocol, "No operations available")
+            })
+        
+        # Use AI to generate concrete strategies combining protocols with user's expected strategy
+        prompt = (
+            f"User requested strategy: '{strategy_keyword}'\n"
+            f"Available protocols: {protocol_details}\n"
+            "Based on the available protocols and their capabilities, provide concrete, actionable investment strategies. "
+            "Include specific steps, risk considerations, and expected outcomes. "
+            "Format as JSON with 'concrete_strategies' array containing detailed strategy objects with 'description', 'protocols_used', 'risk_level', and 'expected_return_range'."
+        )
+        
+        ai_response = llm.create_completion(prompt, max_tokens=400)
+        try:
+            concrete_strategies = json.loads(ai_response)
+            return {
+                "protocols": protocol_details,
+                "concrete_strategies": concrete_strategies.get("concrete_strategies", [])
+            }
+        except json.JSONDecodeError:
+            # Fallback response
+            return {
+                "protocols": protocol_details,
+                "concrete_strategies": [
+                    {
+                        "description": f"Implement {strategy_keyword} strategy using available protocols",
+                        "protocols_used": [p["name"] for p in protocol_details],
+                        "risk_level": "Medium",
+                        "expected_return_range": "5-15% APY"
+                    }
+                ]
+            }
+    
+    except Exception as e:
+        print(f"Error in query_protocols_for_strategy: {e}")
+        # Return a basic fallback response
+        return {
+            "protocols": [],
+            "concrete_strategies": [
+                {
+                    "description": f"Strategy '{strategy_keyword}' analysis unavailable. Recommend consulting with DeFi protocols directly.",
+                    "protocols_used": [],
+                    "risk_level": "Unknown",
+                    "expected_return_range": "Variable"
+                }
+            ]
+        }
 
 def process_query(query, rag: InvestmentRAG, llm: LLM):
     intent, keyword = get_intent_and_keyword(query, llm)
@@ -131,6 +285,43 @@ def process_query(query, rag: InvestmentRAG, llm: LLM):
             f"Investment Strategy for {keyword}: {strategy_info if strategy_info else 'Not found'}\n"
             "Provide detailed strategy recommendations for this goal."
         )
+    # TODO below should adjust
+    elif intent == "specific_strategy" and keyword:
+        # Get available protocols for the strategy
+        strategy_info = rag.query_relation("specific_strategy", keyword)
+        print(f"strategy_info: {strategy_info}")
+        # strategy_to_protocols = {
+        #     'yield_farming': ['uniswap_v3', 'balancer', 'convex'],
+        #     'lending': ['aave', 'compound', 'morpho', 'euler'],
+        #     'stablecoin_lp': ['curve'],
+        #     'yield_vaults': ['yearn'],
+        #     'yield_trading': ['pendle'],
+        #     'perpetuals': ['gmx', 'dydx'],
+        #     'synthetic_assets': ['synthetix']
+        # }
+
+        strategy_to_protocols = {
+            'yield_farming': ['uniswap_v3'],
+            'lending': ['compound'],
+            'stablecoin_lp': ['curve'],
+            'yield_vaults': ['yearn'],
+            'yield_trading': ['pendle'],
+            'perpetuals': ['dydx'],
+            'synthetic_assets': ['synthetix']
+        }
+        
+        print(f"strategy_to_protocols: {strategy_to_protocols}")
+        
+        prompt = (
+            f"Query: '{query}'\n"
+            f"Strategy: {keyword}\n"
+            f"Available Protocols: {strategy_to_protocols}\n"
+            "Provide investment strategy recommendations for this goal. Format your response as a numbered list with clear steps, allocation percentages, and specific protocols. Use this structure:\n"
+            "1. **Protocol Name (Allocation %):** Description and implementation steps\n"
+            "2. **Protocol Name (Allocation %):** Description and implementation steps\n"
+            "Include risk considerations and rebalancing advice at the end."
+        )
+
     
     elif intent == "on_chain_trading_101" and keyword:
         education_info = rag.query_relation("on_chain_trading_101", keyword)
@@ -203,10 +394,38 @@ def process_query(query, rag: InvestmentRAG, llm: LLM):
         prompt = f"Query: '{query}'\nNo specific investment information found. Provide general investment guidance and suggest consulting a financial advisor."
 
     prompt += "\nFormat response as: 'Selected Question: <question>' on first line, 'Investment Advice: <response>' on second. Include appropriate disclaimers about consulting financial professionals."
-    response = llm.create_completion(prompt, max_tokens=300)
+    
+    # Use higher max_tokens for specific_strategy to ensure complete responses
+    max_tokens = 800 if intent == "specific_strategy" else 300
+    response = llm.create_completion(prompt, max_tokens=max_tokens)
+    # todo, return strcuted format data for data panel displaying
+    print(f"test--response: {response}")
     try:
-        selected_q = response.split('\n')[0].replace("Selected Question: ", "").strip()
-        answer = response.split('\n')[1].replace("Investment Advice: ", "").strip()
+        lines = response.split('\n')
+        selected_q = lines[0].replace("Selected Question: ", "").strip()
+        
+        # Find the line with "Investment Advice:" and get all content after it
+        investment_advice_start = -1
+        for i, line in enumerate(lines):
+            if "Investment Advice:" in line:
+                investment_advice_start = i
+                break
+        
+        if investment_advice_start >= 0:
+            # Get the content after "Investment Advice:" on the same line
+            first_line = lines[investment_advice_start].replace("Investment Advice: ", "").strip()
+            # Get all remaining lines
+            remaining_lines = lines[investment_advice_start + 1:]
+            # Combine all content
+            answer = first_line
+            if remaining_lines:
+                answer += "\n" + "\n".join(remaining_lines)
+        else:
+            # Fallback: take everything after the first line
+            answer = "\n".join(lines[1:])
+        
+        answer = answer.strip()
+        print(f"test--answer: {answer}")
         return {"selected_question": selected_q, "humanized_answer": answer}
     except IndexError:
         return {"selected_question": query, "humanized_answer": response}

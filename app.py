@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from uuid import uuid4
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 import json
 import os
 from dotenv import load_dotenv
@@ -24,10 +24,25 @@ from metta.utils import LLM, process_query
 load_dotenv()
 agent = Agent(name="On Chain Finance Advisor", port=8008, mailbox=True, publish_agent_details=True)
 
+# todo ajust for on-chain finance
 class InvestmentQuery(Model):
     query: str
     intent: str
     keyword: str
+
+# REST API Models
+class FinanceRequest(Model):
+    query: str
+
+class FinanceResponse(Model):
+    query: str
+    answer: str
+    selected_question: Optional[str] = None
+    error: Optional[str] = None
+
+class HealthResponse(Model):
+    status: str
+    agent: str
 
 def create_text_chat(text: str, end_session: bool = False) -> ChatMessage:
     content = [TextContent(type="text", text=text)]
@@ -86,6 +101,42 @@ async def handle_message(ctx: Context, sender: str, msg: ChatMessage):
 @chat_proto.on_message(ChatAcknowledgement)
 async def handle_ack(ctx: Context, sender: str, msg: ChatAcknowledgement):
     ctx.logger.info(f"Got an acknowledgement from {sender} for {msg.acknowledged_msg_id}")
+
+# REST API endpoints
+@agent.on_rest_post("/on-chain-finance", FinanceRequest, FinanceResponse)
+async def finance_advice(ctx: Context, req: FinanceRequest) -> FinanceResponse:
+    """REST endpoint for finance advice"""
+    try:
+        ctx.logger.info(f"REST API request received - Query: {req.query}")
+        response = process_query(req.query, rag, llm)
+        
+        if isinstance(response, dict):
+            ctx.logger.info(f"REST API response generated for query: {req.query}")
+            return FinanceResponse(
+                query=req.query,
+                answer=response.get('humanized_answer', 'Could not process query'),
+                selected_question=response.get('selected_question')
+            )
+        else:
+            ctx.logger.info(f"REST API response generated for query: {req.query}")
+            return FinanceResponse(
+                query=req.query,
+                answer=str(response)
+            )
+    except Exception as e:
+        ctx.logger.error(f"REST API error for query '{req.query}': {e}")
+        return FinanceResponse(
+            query=req.query,
+            answer="Error processing query",
+            error=str(e)
+        )
+
+@agent.on_rest_get("/health", HealthResponse)
+async def health_check(ctx: Context)  -> HealthResponse:
+    """Health check endpoint"""
+    ctx.logger.info("Health check endpoint called via REST API")
+    return HealthResponse(status="healthy", agent="On Chain Finance Advisor")
+
 
 agent.include(chat_proto, publish_manifest=True)
 

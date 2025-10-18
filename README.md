@@ -87,6 +87,10 @@ ASI_ONE_API_KEY=your_asi_one_api_key_here
 - "I want to preserve wealth using DeFi. What are safe options?"
 - "How should institutions approach DeFi treasury management?"
 
+### Doing: looking for specific strategies
+
+- "How should I structure my portfolio for passive income in DeFi? when supply the availiable strategies should based on your supported protocols."
+
 ### 📚 Educational & Safety Queries
 
 - "What is impermanent loss and how do I avoid it?"
