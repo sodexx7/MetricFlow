@@ -1,39 +1,67 @@
-import { useState } from 'react';
-import { ChatInterface } from './components/ChatInterface';
-import { OnChainDataPanel } from './components/OnChainDataPanel';
-import { SmartContractPanel } from './components/SmartContractPanel';
-import { DataDetailsPage } from './components/DataDetailsPage';
-import { Button } from './components/ui/button';
-import { 
-  ResizableHandle, 
-  ResizablePanel, 
-  ResizablePanelGroup 
-} from './components/ui/resizable';
-import { 
-  MessageSquare, 
-  BarChart3, 
-  FileCode, 
-  LayoutDashboard 
-} from 'lucide-react';
-import { Toaster } from './components/ui/sonner';
+import { useState } from "react";
+import { ChatInterface, type Message } from "./components/ChatInterface";
+import { OnChainDataPanel } from "./components/OnChainDataPanel";
+import { SmartContractPanel } from "./components/SmartContractPanel";
+import { DataDetailsPage } from "./components/DataDetailsPage";
+import { Button } from "./components/ui/button";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "./components/ui/resizable";
+import { MessageSquare, BarChart3, FileCode } from "lucide-react";
+import { Toaster } from "./components/ui/sonner";
+import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { ThemeToggle } from "./components/ThemeToggle";
+import metricsFlowLogo from "./assets/MetricsFlowLogo.png";
 
-type LayoutMode = 'chat-only' | 'chat-data' | 'chat-contract';
-type ViewMode = 'main' | 'data-details';
+type LayoutMode = "chat-only" | "chat-data" | "chat-contract";
+type ViewMode = "main" | "data-details";
 
 export default function App() {
-  const [layoutMode, setLayoutMode] = useState<LayoutMode>('chat-only');
-  const [viewMode, setViewMode] = useState<ViewMode>('main');
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>("chat-only");
+  const [viewMode, setViewMode] = useState<ViewMode>("main");
+  const [hasUniswapStrategy, setHasUniswapStrategy] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: "1",
+      role: "assistant",
+      content:
+        "Hello! I'm your blockchain AI assistant. I can help you analyze on-chain data and execute smart contract strategies. What would you like to do today?",
+      timestamp: new Date(),
+    },
+  ]);
+
+  const handleUniswapDetected = (hasUniswap: boolean) => {
+    setHasUniswapStrategy(hasUniswap);
+    console.log("=== UNISWAP DETECTION ===");
+    console.log("Has Uniswap strategy:", hasUniswap);
+    console.log("========================");
+  };
+
+  const handleNavigateToContract = () => {
+    // Switch to contract layout
+    setLayoutMode("chat-contract");
+    
+    // Wait for layout to update, then scroll to contract panel
+    setTimeout(() => {
+      const contractPanel = document.getElementById('contract-panel');
+      if (contractPanel) {
+        contractPanel.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 100);
+  };
 
   const handleViewDataDetails = () => {
-    setViewMode('data-details');
+    setViewMode("data-details");
   };
 
   const handleBackToMain = () => {
-    setViewMode('main');
+    setViewMode("main");
   };
 
   // Data Details View (Full Screen)
-  if (viewMode === 'data-details') {
+  if (viewMode === "data-details") {
     return (
       <div className="h-screen bg-background">
         <Toaster />
@@ -46,66 +74,92 @@ export default function App() {
   return (
     <div className="h-screen flex flex-col bg-background">
       <Toaster />
-      
+
       {/* Header */}
       <header className="border-b bg-card">
-        <div className="flex items-center justify-between p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-              <LayoutDashboard className="w-6 h-6 text-white" />
-            </div>
+        <div className="flex items-center justify-between px-6 py-5">
+          <div className="flex items-center gap-4">
+            <img
+              src={metricsFlowLogo}
+              alt="MetricsFlow Logo"
+              className="object-contain"
+              style={{ width: "90px", height: "90px" }}
+            />
             <div>
-              <h1>Blockchain AI Assistant</h1>
-              <p className="text-sm text-muted-foreground">On-chain intelligence & smart contract execution</p>
+              <p className="text-sm text-muted-foreground">
+                AI-powered blockchain analytics & smart contract execution
+              </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Button
-              variant={layoutMode === 'chat-only' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setLayoutMode('chat-only')}
-            >
-              <MessageSquare className="w-4 h-4 mr-2" />
-              Chat Only
-            </Button>
-            <Button
-              variant={layoutMode === 'chat-data' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setLayoutMode('chat-data')}
-            >
-              <BarChart3 className="w-4 h-4 mr-2" />
-              + Data
-            </Button>
-            <Button
-              variant={layoutMode === 'chat-contract' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setLayoutMode('chat-contract')}
-            >
-              <FileCode className="w-4 h-4 mr-2" />
-              + Contract
-            </Button>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Button
+                variant={layoutMode === "chat-only" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setLayoutMode("chat-only")}
+              >
+                <MessageSquare className="w-4 h-4 mr-2" />
+                Chat Only
+              </Button>
+              <Button
+                variant={layoutMode === "chat-data" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setLayoutMode("chat-data")}
+              >
+                <BarChart3 className="w-4 h-4 mr-2" />+ Data
+              </Button>
+              {hasUniswapStrategy && (
+                <Button
+                  variant={layoutMode === "chat-contract" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setLayoutMode("chat-contract")}
+                >
+                  <FileCode className="w-4 h-4 mr-2" />+ Contract
+                </Button>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              <ConnectButton />
+              <ThemeToggle />
+            </div>
           </div>
         </div>
       </header>
 
       {/* Main Content Area */}
       <div className="flex-1 overflow-hidden">
-        {layoutMode === 'chat-only' ? (
+        {layoutMode === "chat-only" ? (
           <div className="h-full max-w-4xl mx-auto">
-            <ChatInterface />
+            <ChatInterface 
+              messages={messages} 
+              setMessages={setMessages} 
+              onUniswapDetected={handleUniswapDetected}
+              onNavigateToContract={handleNavigateToContract}
+            />
           </div>
         ) : (
           <ResizablePanelGroup direction="horizontal">
             <ResizablePanel defaultSize={50} minSize={30}>
-              <ChatInterface />
+              <ChatInterface 
+                messages={messages} 
+                setMessages={setMessages} 
+                onUniswapDetected={handleUniswapDetected}
+                onNavigateToContract={handleNavigateToContract}
+              />
             </ResizablePanel>
             <ResizableHandle withHandle />
             <ResizablePanel defaultSize={50} minSize={30}>
-              {layoutMode === 'chat-data' ? (
+              {layoutMode === "chat-data" ? (
                 <OnChainDataPanel onViewDetails={handleViewDataDetails} />
+              ) : hasUniswapStrategy ? (
+                <div id="contract-panel" className="h-full overflow-hidden">
+                  <SmartContractPanel />
+                </div>
               ) : (
-                <SmartContractPanel />
+                <div className="flex items-center justify-center h-full text-muted-foreground">
+                  <p>No Uniswap strategies detected. Contract panel is hidden.</p>
+                </div>
               )}
             </ResizablePanel>
           </ResizablePanelGroup>

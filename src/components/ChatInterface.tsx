@@ -1,29 +1,31 @@
 import { useState, useRef, useEffect } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Card } from "./ui/card";
 import { Avatar, AvatarFallback } from "./ui/avatar";
-import { Send, Bot, User } from "lucide-react";
+import { Send, Bot, User, ExternalLink } from "lucide-react";
+import { FinanceResponse, Message as FinanceMessage, Strategy } from "../types/finance";
+import { checkHasUniswapStrategy } from "./StrategiesHandler";
+import ReactMarkdown from 'react-markdown';
 
 export interface Message {
   id: string;
   role: "user" | "assistant";
-  content: string;
+  content: string | FinanceResponse;
   timestamp: Date;
   requiresOnChainData?: boolean;
   requiresContractOperation?: boolean;
 }
 
-export function ChatInterface() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      role: "assistant",
-      content:
-        "Hello! I'm your blockchain AI assistant. I can help you analyze on-chain data and execute smart contract strategies. What would you like to do today?",
-      timestamp: new Date(),
-    },
-  ]);
+interface ChatInterfaceProps {
+  messages: Message[];
+  setMessages: Dispatch<SetStateAction<Message[]>>;
+  onUniswapDetected?: (hasUniswap: boolean) => void;
+  onNavigateToContract?: () => void;
+}
+
+export function ChatInterface({ messages, setMessages, onUniswapDetected, onNavigateToContract }: ChatInterfaceProps) {
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -73,13 +75,35 @@ export function ChatInterface() {
       }
 
       const data = await response.json();
+      
+      console.log("=== API RESPONSE DEBUG ===");
+      console.log("Response data:", JSON.stringify(data, null, 2));
+      console.log("Response has strategies?", data.strategies && Array.isArray(data.strategies));
+      console.log("Strategies array:", data.strategies);
+      
+      // Check if response has strategies (FinanceResponse format)
+      const hasStrategies = data.strategies && Array.isArray(data.strategies);
+      const financeResponse: FinanceResponse = hasStrategies ? data : {
+        query: currentInput,
+        answer: data.error ? `Error: ${data.error}` : data.answer || "No response received from the AI service",
+        error: data.error,
+        strategies: undefined
+      };
+
+      console.log("Final financeResponse:", financeResponse);
+
+      // Check for Uniswap strategies and notify parent
+      if (hasStrategies && onUniswapDetected) {
+        console.log("Checking for Uniswap strategies...");
+        const hasUniswap = checkHasUniswapStrategy(financeResponse.strategies);
+        console.log("Uniswap detection result:", hasUniswap);
+        onUniswapDetected(hasUniswap);
+      }
 
       const aiResponse: Message = {
         id: (Date.now() + 2).toString(),
         role: "assistant",
-        content: data.error 
-          ? `Error: ${data.error}` 
-          : (data.answer || "No response received from the AI service"),
+        content: financeResponse,
         timestamp: new Date(),
       };
 
@@ -144,16 +168,60 @@ export function ChatInterface() {
                 </AvatarFallback>
               </Avatar>
               <Card
-                className={`p-3 max-w-[75%] break-words ${
+                className={`p-6 max-w-[80%] break-words shadow-lg border-0 ${
                   message.role === "user"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted"
+                    ? "bg-gradient-to-br from-blue-600 to-blue-700 text-white"
+                    : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
                 }`}
               >
-                <div className="whitespace-pre-wrap break-words overflow-wrap-anywhere text-sm leading-relaxed">
-                  {message.content}
+                <div className="break-words overflow-wrap-anywhere">
+                  {typeof message.content === 'string' ? (
+                    message.role === 'user' ? (
+                      <div className="whitespace-pre-wrap text-base leading-relaxed font-medium">{message.content}</div>
+                    ) : (
+                      <div className="prose prose-base max-w-none dark:prose-invert prose-headings:font-bold prose-headings:text-lg prose-p:mb-4 prose-p:leading-7 prose-strong:text-blue-600 prose-strong:font-semibold">
+                        <ReactMarkdown>
+                          {message.content}
+                        </ReactMarkdown>
+                      </div>
+                    )
+                  ) : (
+                    <>
+                      <div className="prose prose-base max-w-none dark:prose-invert prose-headings:font-bold prose-headings:text-lg prose-p:mb-6 prose-p:leading-7 prose-strong:text-blue-600 prose-strong:font-semibold prose-li:mb-2">
+                        <ReactMarkdown>
+                          {message.content.answer.split('\n\n').map((paragraph, index) => (
+                            paragraph.trim() && `${paragraph}\n\n`
+                          )).join('')}
+                        </ReactMarkdown>
+                      </div>
+                      {message.content.strategies && checkHasUniswapStrategy(message.content.strategies) && (
+                        <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl shadow-sm">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                              <span className="text-lg">💡</span>
+                            </div>
+                            <p className="text-blue-800 font-medium">
+                              Our protocol now supports Uniswap swapAndLP, you can execute it in{" "}
+                              <a 
+                                href="#contract-panel" 
+                                className="text-blue-600 hover:text-blue-800 underline font-semibold transition-colors duration-200 inline-flex items-center gap-1"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  onNavigateToContract?.();
+                                }}
+                              >
+                                contract panel <ExternalLink className="w-4 h-4" />
+                              </a>
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
-                <span className="text-xs opacity-70 mt-2 block">
+                <span className={`text-xs mt-4 block font-medium ${
+                  message.role === "user" ? "opacity-80" : "text-gray-500"
+                }`}>
                   {message.timestamp.toLocaleTimeString()}
                 </span>
               </Card>
@@ -162,33 +230,48 @@ export function ChatInterface() {
         </div>
       </div>
 
-      <div className="border-t p-4 flex-shrink-0">
+      <div className="border-t p-6 flex-shrink-0 bg-muted/30">
         <div className="flex gap-2">
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
             placeholder="Ask about on-chain data or execute strategies..."
-            className="flex-1"
+            className="flex-1 text-base py-3 px-4 border-2 rounded-xl transition-all duration-200 focus:ring-4 focus:ring-blue-100"
           />
-          <Button onClick={handleSend} size="icon">
-            <Send className="w-4 h-4" />
+          <Button 
+            onClick={handleSend} 
+            size="icon" 
+            className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl p-3 transition-all duration-200 shadow-lg border-0"
+            style={{ backgroundColor: '#2563eb' }}
+          >
+            <Send className="w-4 h-4 text-white fill-white stroke-white" />
           </Button>
         </div>
-        <div className="flex gap-2 mt-2">
+        <div className="flex gap-3 mt-4 flex-wrap">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setInput("Show me ETH price data")}
+            onClick={() => setInput("As a DeFi beginner, how much should I risk?")}
+            className="text-sm font-medium px-4 py-2 rounded-full border-2 border-blue-200 hover:border-blue-400 hover:bg-blue-50 transition-all duration-200 whitespace-nowrap"
           >
-            Price Data
+            🛡️ DeFi Risk Guide
           </Button>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setInput("Execute a swap strategy")}
+            onClick={() => setInput("I want to achieve passive income in DeFi? Can you suggest some strategies for me?")}
+            className="text-sm font-medium px-4 py-2 rounded-full border-2 border-green-200 hover:border-green-400 hover:bg-green-50 transition-all duration-200 whitespace-nowrap"
           >
-            Execute Strategy
+            💰 Passive Income Strategies
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setInput("What are the risks of using Uniswap v3 for liquidity provision?")}
+            className="text-sm font-medium px-4 py-2 rounded-full border-2 border-purple-200 hover:border-purple-400 hover:bg-purple-50 transition-all duration-200 whitespace-nowrap"
+          >
+            🦄 Uniswap v3 Risks
           </Button>
         </div>
       </div>
