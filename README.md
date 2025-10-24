@@ -2,7 +2,7 @@
 
 Reference [singularity-net-metta-fetch-financial-advisor-agent](https://github.com/fetchai/innovation-lab-examples/tree/main/web3/singularity-net-metta-fetch-financial-advisor-agent)
 
-![AI_Agent_Architecture](AI_Agent_Architecture_draft.png)
+![AI_Agent_Architecture](AI_Agent_Architecture.png)
 
 ## ⚙️ Setup Instructions
 
