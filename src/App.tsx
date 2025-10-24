@@ -22,6 +22,7 @@ export default function App() {
   const [layoutMode, setLayoutMode] = useState<LayoutMode>("chat-only");
   const [viewMode, setViewMode] = useState<ViewMode>("main");
   const [hasUniswapStrategy, setHasUniswapStrategy] = useState(false);
+  const [uniswapStrategies, setUniswapStrategies] = useState<any[]>([]);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -32,10 +33,12 @@ export default function App() {
     },
   ]);
 
-  const handleUniswapDetected = (hasUniswap: boolean) => {
+  const handleUniswapDetected = (hasUniswap: boolean, strategies?: any[]) => {
     setHasUniswapStrategy(hasUniswap);
+    setUniswapStrategies(strategies || []);
     console.log("=== UNISWAP DETECTION ===");
     console.log("Has Uniswap strategy:", hasUniswap);
+    console.log("Uniswap strategies:", strategies);
     console.log("========================");
   };
 
@@ -52,9 +55,11 @@ export default function App() {
     }, 100);
   };
 
-  const handleViewDataDetails = () => {
-    setViewMode("data-details");
+  const handleNavigateToData = () => {
+    // Switch to data layout
+    setLayoutMode("chat-data");
   };
+
 
   const handleBackToMain = () => {
     setViewMode("main");
@@ -136,6 +141,7 @@ export default function App() {
               setMessages={setMessages} 
               onUniswapDetected={handleUniswapDetected}
               onNavigateToContract={handleNavigateToContract}
+              onNavigateToData={handleNavigateToData}
             />
           </div>
         ) : (
@@ -146,12 +152,13 @@ export default function App() {
                 setMessages={setMessages} 
                 onUniswapDetected={handleUniswapDetected}
                 onNavigateToContract={handleNavigateToContract}
+                onNavigateToData={handleNavigateToData}
               />
             </ResizablePanel>
             <ResizableHandle withHandle />
             <ResizablePanel defaultSize={50} minSize={30}>
               {layoutMode === "chat-data" ? (
-                <OnChainDataPanel onViewDetails={handleViewDataDetails} />
+                <OnChainDataPanel uniswapStrategies={uniswapStrategies} />
               ) : hasUniswapStrategy ? (
                 <div id="contract-panel" className="h-full overflow-hidden">
                   <SmartContractPanel />

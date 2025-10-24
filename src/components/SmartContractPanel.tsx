@@ -1,286 +1,770 @@
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Badge } from './ui/badge';
-import { Separator } from './ui/separator';
-import { Alert, AlertDescription } from './ui/alert';
-import { Progress } from './ui/progress';
-import { 
-  FileCode, 
-  CheckCircle2, 
-  AlertCircle, 
-  Loader2, 
-  Wallet,
-  ArrowRightLeft,
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { Alert, AlertDescription } from "./ui/alert";
+import {
+  CheckCircle2,
+  Loader2,
   Shield,
-  Zap
-} from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+  Droplets,
+  Calculator,
+} from "lucide-react";
+import { parseEther } from "viem";
+import {
+  useAccount,
+  useWriteContract,
+  useWaitForTransactionReceipt,
+  useReadContract,
+} from "wagmi";
+import { encodeUniswapSwapAndMint } from "../utils/helper";
 
-type TransactionStatus = 'idle' | 'pending' | 'success' | 'failed';
+import usdcContract from "../../deployments/contracts/USDC.json";
+import smartAccountContract from "../../deployments/contracts/smartcontract.json";
+import addresses from "../../deployments/arbitrum-mainnet/addresses.json";
+
+type TransactionStatus = "idle" | "pending" | "success" | "failed";
+
+interface EstimateResult {
+  callGasLimit: string;
+  verificationGasLimit: string;
+  preVerificationGas: string;
+  maxPriorityFeePerGas?: string;
+  maxFeePerGas?: string;
+}
 
 export function SmartContractPanel() {
-  const [amount, setAmount] = useState('1.0');
-  const [status, setStatus] = useState<TransactionStatus>('idle');
-  const [txHash, setTxHash] = useState('');
+  const { address: connectedAddress, isConnected } = useAccount();
+  const [approveAmount, setApproveAmount] = useState("10");
+  const [swapAmount, setSwapAmount] = useState("10");
+  const [slippagePercent, setSlippagePercent] = useState("10");
+  const [approveStatus, setApproveStatus] = useState<TransactionStatus>("idle");
+  const [swapLpStatus, setSwapLpStatus] = useState<TransactionStatus>("idle");
+  const [estimateStatus, setEstimateStatus] =
+    useState<TransactionStatus>("idle");
+  const [approveTxHash, setApproveTxHash] = useState("");
+  const [swapLpTxHash, setSwapLpTxHash] = useState("");
+  const [estimateResult, setEstimateResult] = useState<EstimateResult | null>(
+    null
+  );
+  const [estimateError, setEstimateError] = useState<string | null>(null);
+  const [gasPriceData, setGasPriceData] = useState<any>(null);
 
-  const handleExecute = () => {
-    setStatus('pending');
-    setTxHash('');
+  const usdcAddress = addresses.contracts.USDC.address;
+  const smartAccountAddress = addresses.contracts.SmartAccount.address;
+  const approveAbi = usdcContract.abi;
+  const uniswapSwapAndMintAbi = smartAccountContract.abi;
 
-    // Simulate transaction execution
-    setTimeout(() => {
-      const hash = `0x${Math.random().toString(16).substr(2, 64)}`;
-      setTxHash(hash);
-      setStatus('success');
-    }, 3000);
+  // Wagmi contract write hook for USDC approve
+  const {
+    writeContract: writeApprove,
+    data: approveHash,
+    isPending: isApprovePending,
+    error: approveError,
+  } = useWriteContract();
+
+  // Wait for approve transaction confirmation
+  const { isLoading: isApproveConfirming, isSuccess: isApproveConfirmed } =
+    useWaitForTransactionReceipt({
+      hash: approveHash,
+    });
+
+  // Update approve status based on wagmi hook states
+  useEffect(() => {
+    if (isApprovePending) {
+      setApproveStatus("pending");
+    } else if (approveError) {
+      setApproveStatus("failed");
+      console.error("Approve error:", approveError);
+    } else if (isApproveConfirmed && approveHash) {
+      setApproveStatus("success");
+      setApproveTxHash(approveHash);
+    }
+  }, [isApprovePending, approveError, isApproveConfirmed, approveHash]);
+
+  const handleApprove = async () => {
+    if (!isConnected || !connectedAddress) {
+      alert("Please connect your wallet first");
+      return;
+    }
+
+    try {
+      setApproveStatus("pending");
+      setApproveTxHash("");
+
+      // Convert amount to wei (USDC has 6 decimals)
+      const amount = BigInt(parseFloat(approveAmount) * 1e6);
+
+      console.log("=== APPROVE DEBUG INFO ===");
+      console.log("Connected Address (user):", connectedAddress);
+      console.log("USDC Contract Address:", usdcAddress);
+      console.log("Smart Contract Address (spender):", smartAccountAddress);
+      console.log("Approve Amount (input):", approveAmount);
+      console.log("Approve Amount (with decimals):", amount.toString());
+      console.log("========================");
+
+      // Call USDC approve function with wagmi
+      writeApprove({
+        address: usdcAddress as `0x${string}`,
+        abi: approveAbi,
+        functionName: "approve",
+        args: [smartAccountAddress, amount],
+      });
+    } catch (error) {
+      console.error("Approve failed:", error);
+      setApproveStatus("failed");
+    }
+  };
+
+  const handleSwapLp = async () => {
+    setSwapLpStatus("pending");
+    setSwapLpTxHash("");
+
+    const url = import.meta.env.VITE_PIMLICO_URL as string;
+
+    try {
+      // Validate inputs (same as estimate)
+      if (!connectedAddress || !isConnected) {
+        throw new Error("Please connect your wallet first");
+      }
+      if (!swapAmount || parseFloat(swapAmount) <= 0) {
+        throw new Error("Valid swap amount is required");
+      }
+      if (!slippagePercent || parseFloat(slippagePercent) <= 0) {
+        throw new Error("Valid slippage percentage is required");
+      }
+
+      // Check allowance (same as estimate)
+      const currentAllowance = await checkAllowance();
+      const requiredAmount = BigInt(parseFloat(swapAmount) * 1e6);
+
+      if (currentAllowance < requiredAmount) {
+        throw new Error(
+          `Insufficient allowance. Please approve more USDC first.`
+        );
+      }
+
+      // Get current nonce from EntryPoint
+      const currentNonce = await getNonceFromEntryPoint();
+
+      // Get gas price
+      const gasPriceResponse = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          method: "pimlico_getUserOperationGasPrice",
+          params: [],
+          id: 1,
+        }),
+      });
+      const gasPriceData = await gasPriceResponse.json();
+      const fastGasPrice = gasPriceData.result.fast;
+
+      // Generate call data (same as estimate)
+      const usdcAmount = BigInt(parseFloat(swapAmount) * 1e6);
+      const callData = encodeUniswapSwapAndMint(
+        connectedAddress,
+        usdcAmount,
+        BigInt(slippagePercent),
+        uniswapSwapAndMintAbi
+      );
+
+      // First estimate gas to get proper parameters
+      const estimateRequest = {
+        jsonrpc: "2.0",
+        method: "eth_estimateUserOperationGas",
+        params: [
+          {
+            sender: smartAccountAddress,
+            nonce: numberToHex(currentNonce),
+            factory: null,
+            factoryData: "0x0",
+            callData: callData,
+            callGasLimit: "0x0",
+            verificationGasLimit: "0x0",
+            preVerificationGas: "0x0",
+            maxPriorityFeePerGas: fastGasPrice.maxPriorityFeePerGas,
+            maxFeePerGas: fastGasPrice.maxFeePerGas,
+            paymaster: null,
+            paymasterVerificationGasLimit: null,
+            paymasterPostOpGasLimit: null,
+            paymasterData: null,
+            signature: "0x0",
+          },
+          "0x0000000071727De22E5E9d8BAf0edAc6f37da032",
+        ],
+        id: 1,
+      };
+
+      const estimateResponse = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(estimateRequest),
+      });
+
+      const estimateResult = await estimateResponse.json();
+
+      if (estimateResult.error) {
+        throw new Error(
+          `Gas estimation failed: ${estimateResult.error.message}`
+        );
+      }
+
+      const gasEstimate = estimateResult.result;
+
+      // Create UserOperation with estimated gas parameters
+      const userOperation = {
+        sender: smartAccountAddress,
+        nonce: numberToHex(currentNonce),
+        factory: null,
+        factoryData: "0x0",
+        callData: callData,
+        callGasLimit: gasEstimate.callGasLimit,
+        verificationGasLimit: gasEstimate.verificationGasLimit,
+        preVerificationGas: gasEstimate.preVerificationGas,
+        maxPriorityFeePerGas: fastGasPrice.maxPriorityFeePerGas,
+        maxFeePerGas: fastGasPrice.maxFeePerGas,
+        paymaster: null,
+        paymasterVerificationGasLimit: null,
+        paymasterPostOpGasLimit: null,
+        paymasterData: null,
+        signature: "0x0",
+      };
+
+      // Submit UserOperation
+      const submitResponse = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          method: "eth_sendUserOperation",
+          params: [userOperation, "0x0000000071727De22E5E9d8BAf0edAc6f37da032"],
+          id: 1,
+        }),
+      });
+
+      const result = await submitResponse.json();
+
+      if (result.error) {
+        throw new Error(result.error.message);
+      }
+
+      const userOpHash = result.result;
+      setSwapLpTxHash(userOpHash);
+      setSwapLpStatus("success");
+    } catch (error) {
+      console.error("Swap + LP failed:", error);
+      setSwapLpStatus("failed");
+    }
+  };
+
+  const numberToHex = (num: bigint): string => {
+    return `0x${num.toString(16)}`;
+  };
+
+  // Function to check current allowance
+  const checkAllowance = async () => {
+    try {
+      const response = await fetch(
+        `https://arb-mainnet.g.alchemy.com/v2/wWCcLJyDISJ25dvLZvCzCK9wKVVI7HPt`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            method: "eth_call",
+            params: [
+              {
+                to: usdcAddress,
+                data: `0xdd62ed3e${connectedAddress
+                  ?.slice(2)
+                  .padStart(64, "0")}${smartAccountAddress
+                  .slice(2)
+                  .padStart(64, "0")}`,
+              },
+              "latest",
+            ],
+            id: 1,
+          }),
+        }
+      );
+      const result = await response.json();
+      return BigInt(result.result || "0");
+    } catch (error) {
+      console.error("Failed to check allowance:", error);
+      return BigInt(0);
+    }
+  };
+
+  // Function to get current nonce from EntryPoint
+  const getNonceFromEntryPoint = async () => {
+    try {
+      const response = await fetch(
+        `https://arb-mainnet.g.alchemy.com/v2/wWCcLJyDISJ25dvLZvCzCK9wKVVI7HPt`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            method: "eth_call",
+            params: [
+              {
+                to: "0x0000000071727De22E5E9d8BAf0edAc6f37da032", // EntryPoint address
+                data: `0x35567e1a${smartAccountAddress.slice(2).padStart(64, '0')}${"0".padStart(64, '0')}`, // getNonce(sender, key)
+              },
+              "latest",
+            ],
+            id: 1,
+          }),
+        }
+      );
+      const result = await response.json();
+      const nonce = BigInt(result.result || "0");
+      
+      console.log("=== NONCE DEBUG ===");
+      console.log("EntryPoint Address:", "0x0000000071727De22E5E9d8BAf0edAc6f37da032");
+      console.log("Smart Contract Address:", smartAccountAddress);
+      console.log("Current Nonce (hex):", result.result);
+      console.log("Current Nonce (decimal):", nonce.toString());
+      console.log("Next Nonce (hex):", numberToHex(nonce));
+      console.log("==================");
+      
+      return nonce;
+    } catch (error) {
+      console.error("Failed to get nonce from EntryPoint:", error);
+      return BigInt(0);
+    }
+  };
+
+  const estimateSwapLp = async () => {
+    setEstimateStatus("pending");
+    setEstimateError(null);
+    setEstimateResult(null);
+
+    const url = import.meta.env.VITE_PIMLICO_URL as string;
+    console.log("estimateSwapLp url:", url);
+
+    try {
+      // Validate inputs
+      if (!connectedAddress || !isConnected) {
+        throw new Error("Please connect your wallet first");
+      }
+      if (!swapAmount || parseFloat(swapAmount) <= 0) {
+        throw new Error("Valid swap amount is required");
+      }
+      if (!slippagePercent || parseFloat(slippagePercent) <= 0) {
+        throw new Error("Valid slippage percentage is required");
+      }
+
+      // Check current allowance
+      const currentAllowance = await checkAllowance();
+      const requiredAmount = BigInt(parseFloat(swapAmount) * 1e6);
+
+      console.log("=== ALLOWANCE CHECK ===");
+      console.log("Current allowance:", currentAllowance.toString());
+      console.log("Required amount:", requiredAmount.toString());
+      console.log("Allowance sufficient:", currentAllowance >= requiredAmount);
+      console.log("=====================");
+
+      if (currentAllowance < requiredAmount) {
+        throw new Error(
+          `Insufficient allowance. Current: ${currentAllowance.toString()}, Required: ${requiredAmount.toString()}`
+        );
+      }
+
+      // Get current nonce from EntryPoint
+      const currentNonce = await getNonceFromEntryPoint();
+
+      // First, get gas price
+      const gasPriceResponse = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          method: "pimlico_getUserOperationGasPrice",
+          params: [],
+          id: 1,
+        }),
+      });
+
+      if (!gasPriceResponse.ok) {
+        throw new Error(`Gas price fetch failed: ${gasPriceResponse.status}`);
+      }
+
+      const gasPriceData = await gasPriceResponse.json();
+      setGasPriceData(gasPriceData);
+      const fastGasPrice = gasPriceData.result.fast;
+
+      // Generate call data for uniswapSwapAndMint function
+      // USDC has 6 decimals, not 18 like ETH
+      const usdcAmount = BigInt(parseFloat(swapAmount) * 1e6);
+
+      console.log("=== ESTIMATE DEBUG INFO ===");
+      console.log("Connected Address (user):", connectedAddress);
+      console.log("Smart Contract Address:", smartAccountAddress);
+      console.log("Swap Amount (input):", swapAmount);
+      console.log("USDC Amount (with decimals):", usdcAmount.toString());
+      console.log("Slippage Percent:", slippagePercent);
+      console.log("========================");
+
+      const callData = encodeUniswapSwapAndMint(
+        connectedAddress,
+        usdcAmount,
+        BigInt(slippagePercent),
+        uniswapSwapAndMintAbi
+      );
+
+      const userOperation = {
+        sender: smartAccountAddress, // Using smart account as sender
+        nonce: numberToHex(currentNonce), // Fetched from EntryPoint
+        factory: null,
+        factoryData: "0x0",
+        callData: callData,
+        callGasLimit: "0x0",
+        verificationGasLimit: "0x0",
+        preVerificationGas: "0x0",
+        maxPriorityFeePerGas: fastGasPrice.maxPriorityFeePerGas,
+        maxFeePerGas: fastGasPrice.maxFeePerGas,
+        paymaster: null,
+        paymasterVerificationGasLimit: null,
+        paymasterPostOpGasLimit: null,
+        paymasterData: null,
+        signature: "0x0",
+      };
+
+      console.log("=== USER OPERATION FOR PIMLICO DEBUGGING ===");
+      console.log("EntryPoint:", "0x0000000071727De22E5E9d8BAf0edAc6f37da032");
+      console.log("UserOperation JSON:");
+      console.log(JSON.stringify(userOperation, null, 2));
+      console.log("============================================");
+
+      const requestBody = {
+        jsonrpc: "2.0",
+        method: "eth_estimateUserOperationGas",
+        params: [userOperation, "0x0000000071727De22E5E9d8BAf0edAc6f37da032"],
+        id: 1,
+      };
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.error) {
+        setEstimateError(data.error.message);
+        setEstimateResult(null);
+        setEstimateStatus("failed");
+      } else {
+        setEstimateResult(data.result);
+        setEstimateError(null);
+        setEstimateStatus("success");
+      }
+
+      return data;
+    } catch (error) {
+      console.error("Error estimating UserOperation:", error);
+      setEstimateError(
+        error instanceof Error ? error.message : "Unknown error"
+      );
+      setEstimateResult(null);
+      setEstimateStatus("failed");
+    }
   };
 
   return (
-    <div className="flex flex-col h-full p-4 space-y-4 overflow-auto">
+    <div className="flex flex-col h-full">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
       <div>
-        <h2>Smart Contract Operations</h2>
-        <p className="text-sm text-muted-foreground">Execute and monitor blockchain transactions</p>
+        <h2>Uniswap V3 Operations</h2>
+        <div className="text-sm text-gray-600 mt-1 space-y-1">
+          <div>
+            <span className="font-medium">USDC:</span>{" "}
+            <a
+              href={`https://arbiscan.io/address/${usdcAddress}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-800 underline break-all"
+            >
+              {usdcAddress}
+            </a>
+          </div>
+          <div>
+            <span className="font-medium">SmartAccount:</span>{" "}
+            <a
+              href={`https://arbiscan.io/address/${smartAccountAddress}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-800 underline break-all"
+            >
+              {smartAccountAddress}
+            </a>
+          </div>
+        </div>
       </div>
 
-      <Tabs defaultValue="swap" className="flex-1">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="swap">Swap</TabsTrigger>
-          <TabsTrigger value="stake">Stake</TabsTrigger>
-          <TabsTrigger value="history">History</TabsTrigger>
-        </TabsList>
+      {/* Approve Operation */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="w-5 h-5" />
+            1. Approve USDC
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>USDC Amount to Approve</Label>
+            <Input
+              value={approveAmount}
+              onChange={(e) => setApproveAmount(e.target.value)}
+              type="number"
+              placeholder="10"
+            />
+          </div>
 
-        <TabsContent value="swap" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ArrowRightLeft className="w-5 h-5" />
-                Token Swap
-              </CardTitle>
-              <CardDescription>Exchange tokens on decentralized protocols</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>From</Label>
-                <div className="flex gap-2">
-                  <Input value={amount} onChange={(e) => setAmount(e.target.value)} type="number" />
-                  <Button variant="outline" className="w-24">ETH</Button>
-                </div>
-                <p className="text-sm text-muted-foreground">Balance: 5.234 ETH</p>
+          <Button
+            onClick={handleApprove}
+            className="w-full"
+            disabled={approveStatus === "pending" || !isConnected}
+          >
+            {approveStatus === "pending" ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Approving...
+              </>
+            ) : (
+              "Approve USDC"
+            )}
+          </Button>
+
+          {approveStatus === "pending" && (
+            <Alert>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <AlertDescription>
+                Approving USDC for contract...
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {approveStatus === "success" && (
+            <Alert className="border-green-500 bg-green-50">
+              <CheckCircle2 className="w-4 h-4 text-green-600" />
+              <AlertDescription>
+                <p className="text-green-800">Approval successful!</p>
+                <p className="text-xs mt-1 text-green-700 break-all">
+                  Tx: {approveTxHash}
+                </p>
+              </AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Swap + LP Operation */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Droplets className="w-5 h-5" />
+            2. Swap + LP
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Connected Address</Label>
+              <div className="p-2 bg-gray-50 rounded text-sm font-mono break-all">
+                {isConnected ? connectedAddress : "Not connected"}
               </div>
+            </div>
 
-              <div className="flex justify-center">
-                <div className="w-10 h-10 rounded-full border-2 bg-background flex items-center justify-center">
-                  <ArrowRightLeft className="w-5 h-5" />
-                </div>
-              </div>
+            <div className="space-y-2">
+              <Label>USDC Amount to Swap + LP</Label>
+              <Input
+                value={swapAmount}
+                onChange={(e) => setSwapAmount(e.target.value)}
+                type="number"
+                placeholder="10"
+              />
+            </div>
 
-              <div className="space-y-2">
-                <Label>To (estimated)</Label>
-                <div className="flex gap-2">
-                  <Input value={(parseFloat(amount) * 2850).toFixed(2)} readOnly />
-                  <Button variant="outline" className="w-24">USDC</Button>
-                </div>
-                <p className="text-sm text-muted-foreground">Balance: 12,450.50 USDC</p>
-              </div>
+            <div className="space-y-2">
+              <Label>Slippage Tolerance (%)</Label>
+              <Input
+                value={slippagePercent}
+                onChange={(e) => setSlippagePercent(e.target.value)}
+                type="number"
+                placeholder="10"
+                min="0"
+                max="50"
+              />
+            </div>
+          </div>
 
-              <Separator />
-
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Exchange Rate</span>
-                  <span>1 ETH = 2,850 USDC</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Network Fee</span>
-                  <span>~$15.50 (22 Gwei)</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Price Impact</span>
-                  <span className="text-green-600">0.12%</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Minimum Received</span>
-                  <span>{(parseFloat(amount) * 2850 * 0.995).toFixed(2)} USDC</span>
-                </div>
-              </div>
-
-              <Separator />
-
-              <Button 
-                onClick={handleExecute} 
-                className="w-full" 
-                disabled={status === 'pending'}
-              >
-                {status === 'pending' ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Executing...
-                  </>
-                ) : (
-                  'Execute Swap'
-                )}
-              </Button>
-
-              {status === 'pending' && (
-                <Alert>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <AlertDescription>
-                    Transaction pending... Please wait for blockchain confirmation.
-                  </AlertDescription>
-                </Alert>
+          <div className="flex gap-2">
+            <Button
+              onClick={estimateSwapLp}
+              variant="outline"
+              className="flex-1"
+              disabled={estimateStatus === "pending" || !isConnected}
+            >
+              {estimateStatus === "pending" ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Estimating...
+                </>
+              ) : (
+                <>
+                  <Calculator className="w-4 h-4 mr-2" />
+                  Estimate Gas
+                </>
               )}
+            </Button>
 
-              {status === 'success' && (
-                <Alert className="border-green-500 bg-green-50">
-                  <CheckCircle2 className="w-4 h-4 text-green-600" />
-                  <AlertDescription>
-                    <p className="text-green-800">Transaction successful!</p>
-                    <p className="text-xs mt-1 text-green-700 break-all">Tx: {txHash}</p>
-                  </AlertDescription>
-                </Alert>
+            <Button
+              onClick={handleSwapLp}
+              className="flex-1"
+              size="lg"
+              disabled={swapLpStatus === "pending" || !isConnected}
+            >
+              {swapLpStatus === "pending" ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Executing...
+                </>
+              ) : (
+                "Execute Swap + LP"
               )}
-            </CardContent>
-          </Card>
+            </Button>
+          </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="w-5 h-5" />
-                Security Check
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-green-600" />
-                <span className="text-sm">Contract verified on Etherscan</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-green-600" />
-                <span className="text-sm">Audited by CertiK</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-green-600" />
-                <span className="text-sm">High liquidity pool</span>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+          {estimateStatus === "pending" && (
+            <Alert>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <AlertDescription>
+                Estimating gas for swap + LP operation...
+              </AlertDescription>
+            </Alert>
+          )}
 
-        <TabsContent value="stake" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Zap className="w-5 h-5" />
-                ETH Staking
-              </CardTitle>
-              <CardDescription>Stake your ETH to earn rewards</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Amount to Stake</Label>
-                <Input type="number" placeholder="0.0" />
-                <p className="text-sm text-muted-foreground">Available: 5.234 ETH</p>
-              </div>
+          {estimateStatus === "success" && estimateResult && (
+            <Alert className="border-blue-500 bg-blue-50">
+              <Calculator className="w-4 h-4 text-blue-600" />
+              <AlertDescription>
+                <p className="text-blue-800 font-medium mb-2">
+                  Gas Estimation Results:
+                </p>
+                <div className="text-xs space-y-1 text-blue-700">
+                  <p>
+                    <strong>Call Gas Limit:</strong>{" "}
+                    {parseInt(estimateResult.callGasLimit, 16).toLocaleString()}
+                  </p>
+                  <p>
+                    <strong>Verification Gas Limit:</strong>{" "}
+                    {parseInt(
+                      estimateResult.verificationGasLimit,
+                      16
+                    ).toLocaleString()}
+                  </p>
+                  <p>
+                    <strong>Pre-verification Gas:</strong>{" "}
+                    {parseInt(
+                      estimateResult.preVerificationGas,
+                      16
+                    ).toLocaleString()}
+                  </p>
+                  {gasPriceData?.result?.fast && (
+                    <>
+                      <p>
+                        <strong>Max Priority Fee:</strong>{" "}
+                        {parseInt(
+                          gasPriceData.result.fast.maxPriorityFeePerGas,
+                          16
+                        ) / 1e9}{" "}
+                        gwei
+                      </p>
+                      <p>
+                        <strong>Max Fee:</strong>{" "}
+                        {parseInt(gasPriceData.result.fast.maxFeePerGas, 16) /
+                          1e9}{" "}
+                        gwei
+                      </p>
+                    </>
+                  )}
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
 
-              <div className="p-4 bg-muted rounded-lg space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm">APY</span>
-                  <span className="text-sm">4.2%</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm">Lock Period</span>
-                  <span className="text-sm">None</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm">Estimated Daily Reward</span>
-                  <span className="text-sm">0.000575 ETH</span>
-                </div>
-              </div>
+          {estimateStatus === "failed" && estimateError && (
+            <Alert className="border-red-500 bg-red-50">
+              <AlertDescription>
+                <p className="text-red-800">Gas estimation failed:</p>
+                <p className="text-xs mt-1 text-red-700">{estimateError}</p>
+              </AlertDescription>
+            </Alert>
+          )}
 
-              <Button className="w-full">Stake ETH</Button>
-            </CardContent>
-          </Card>
+          {swapLpStatus === "pending" && (
+            <Alert>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <AlertDescription>
+                Executing swap and liquidity provision...
+              </AlertDescription>
+            </Alert>
+          )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Your Staking Position</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Staked Amount</span>
-                  <span>2.5 ETH</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Rewards Earned</span>
-                  <span className="text-green-600">0.0342 ETH</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Time Staked</span>
-                  <span>28 days</span>
-                </div>
-              </div>
-              <Button variant="outline" className="w-full">Claim Rewards</Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="history" className="space-y-3">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                    <ArrowRightLeft className="w-5 h-5 text-green-600" />
+          {swapLpStatus === "success" && (
+            <Alert className="border-green-500 bg-green-50">
+              <CheckCircle2 className="w-4 h-4 text-green-600" />
+              <AlertDescription>
+                <p className="text-green-800 font-medium">
+                  Swap + LP successful!
+                </p>
+                <div className="mt-2 space-y-2">
+                  <div>
+                    <p className="text-xs text-green-700">Transaction Hash:</p>
+                    <a
+                      href={`https://arbiscan.io/tx/${swapLpTxHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-600 hover:text-blue-800 underline break-all"
+                    >
+                      {swapLpTxHash}
+                    </a>
                   </div>
                   <div>
-                    <p>Swap 1.5 ETH → 4,275 USDC</p>
-                    <p className="text-sm text-muted-foreground">2 hours ago</p>
+                    <p className="text-xs text-green-700">
+                      View Position on Uniswap:
+                    </p>
+                    <a
+                      href={`https://app.uniswap.org/positions/v3/arbitrum/[TOKEN_ID]`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-600 hover:text-blue-800 underline"
+                    >
+                      🦄 Open in Uniswap (Replace [TOKEN_ID] with actual token
+                      ID)
+                    </a>
                   </div>
                 </div>
-                <Badge variant="outline" className="bg-green-50">Success</Badge>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                    <Zap className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <p>Stake 2.5 ETH</p>
-                    <p className="text-sm text-muted-foreground">1 day ago</p>
-                  </div>
-                </div>
-                <Badge variant="outline" className="bg-green-50">Success</Badge>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
-                    <FileCode className="w-5 h-5 text-purple-600" />
-                  </div>
-                  <div>
-                    <p>Contract Interaction</p>
-                    <p className="text-sm text-muted-foreground">3 days ago</p>
-                  </div>
-                </div>
-                <Badge variant="outline" className="bg-green-50">Success</Badge>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+              </AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
+      </div>
     </div>
   );
 }

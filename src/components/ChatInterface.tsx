@@ -21,11 +21,12 @@ export interface Message {
 interface ChatInterfaceProps {
   messages: Message[];
   setMessages: Dispatch<SetStateAction<Message[]>>;
-  onUniswapDetected?: (hasUniswap: boolean) => void;
+  onUniswapDetected?: (hasUniswap: boolean, strategies?: Strategy[]) => void;
   onNavigateToContract?: () => void;
+  onNavigateToData?: () => void;
 }
 
-export function ChatInterface({ messages, setMessages, onUniswapDetected, onNavigateToContract }: ChatInterfaceProps) {
+export function ChatInterface({ messages, setMessages, onUniswapDetected, onNavigateToContract, onNavigateToData }: ChatInterfaceProps) {
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -97,7 +98,13 @@ export function ChatInterface({ messages, setMessages, onUniswapDetected, onNavi
         console.log("Checking for Uniswap strategies...");
         const hasUniswap = checkHasUniswapStrategy(financeResponse.strategies);
         console.log("Uniswap detection result:", hasUniswap);
-        onUniswapDetected(hasUniswap);
+        
+        // Filter Uniswap strategies to pass to parent
+        const uniswapStrategies = hasUniswap ? financeResponse.strategies?.filter(strategy => 
+          strategy.strategy.protocol.name.toLowerCase().includes("uniswap")
+        ) : [];
+        
+        onUniswapDetected(hasUniswap, uniswapStrategies);
       }
 
       const aiResponse: Message = {
@@ -201,7 +208,16 @@ export function ChatInterface({ messages, setMessages, onUniswapDetected, onNavi
                               <span className="text-lg">💡</span>
                             </div>
                             <p className="text-blue-800 font-medium">
-                              Our protocol now supports Uniswap swapAndLP, you can execute it in{" "}
+                              Our protocol now supports Uniswap swapAndProvideLiquidity, you can check metrics in{" "}
+                              <button 
+                                className="text-blue-600 hover:text-blue-800 underline font-semibold transition-colors duration-200 inline-flex items-center gap-1"
+                                onClick={() => {
+                                  onNavigateToData?.();
+                                }}
+                              >
+                                data <ExternalLink className="w-4 h-4" />
+                              </button>
+                              {" "}execute it in{" "}
                               <a 
                                 href="#contract-panel" 
                                 className="text-blue-600 hover:text-blue-800 underline font-semibold transition-colors duration-200 inline-flex items-center gap-1"
@@ -210,7 +226,7 @@ export function ChatInterface({ messages, setMessages, onUniswapDetected, onNavi
                                   onNavigateToContract?.();
                                 }}
                               >
-                                contract panel <ExternalLink className="w-4 h-4" />
+                                contract <ExternalLink className="w-4 h-4" />
                               </a>
                             </p>
                           </div>
