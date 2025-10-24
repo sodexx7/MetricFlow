@@ -1,6 +1,8 @@
 # OnChain Finance strategies Advisor Agent
 
-reference [singularity-net-metta-fetch-financial-advisor-agent](https://github.com/fetchai/innovation-lab-examples/tree/main/web3/singularity-net-metta-fetch-financial-advisor-agent)
+Reference [singularity-net-metta-fetch-financial-advisor-agent](https://github.com/fetchai/innovation-lab-examples/tree/main/web3/singularity-net-metta-fetch-financial-advisor-agent)
+
+![AI_Agent_Architecture](AI_Agent_Architecture_draft.png)
 
 ## ⚙️ Setup Instructions
 
@@ -142,6 +144,6 @@ The MeTTa knowledge graph contains comprehensive on-chain finance relationships:
 
 ### Data Sources & Networks
 
-- **Network Support** (Arbitrum, Base)
+- **Network Support** (Arbitrum)
 
 ## 🔗 Useful Links
