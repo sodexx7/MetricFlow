@@ -104,7 +104,8 @@ def initialize_OnChainFinance_knowledge(metta: MeTTa):
     metta.space().add_atom(E(S("expected_return"), S("experimental_protocols"), ValueAtom("unproven, total loss to moon")))
     metta.space().add_atom(E(S("expected_return"), S("zero_knowledge_mining"), ValueAtom("computational rewards, network dependent")))
     
-    # Goal → Strategy Mappings (On-chain Finance)
+    # Goal → Strategy Mappings (On-chain Finance) based on the available protocols TODO should add more based on the supported protoocls. 
+    # Should maintain the consistence among AI + metrics data + contract execuation
     metta.space().add_atom(E(S("goal_strategy"), S("passive_income"), ValueAtom("lending, staking, stablecoin_lp")))
     metta.space().add_atom(E(S("goal_strategy"), S("speculation"), ValueAtom("options, derivatives, perpetuals")))
     metta.space().add_atom(E(S("goal_strategy"), S("wealth_preservation"), ValueAtom("treasury_management, bridge_staking")))
@@ -119,20 +120,7 @@ def initialize_OnChainFinance_knowledge(metta: MeTTa):
     metta.space().add_atom(E(S("goal_strategy"), S("leveraged_exposure"), ValueAtom("leveraged_strategies, perpetuals")))
     metta.space().add_atom(E(S("goal_strategy"), S("infrastructure_rewards"), ValueAtom("bridge_staking, zero_knowledge_mining")))
 
-    # Specific Strategies → concrete strategis based on the available protocols TODO
-    metta.space().add_atom(E(S("specific_strategy"), S("passive_income"), ValueAtom("lending, staking, stablecoin_lp")))
-    metta.space().add_atom(E(S("specific_strategy"), S("speculation"), ValueAtom("options, derivatives, perpetuals")))
-    metta.space().add_atom(E(S("specific_strategy"), S("wealth_preservation"), ValueAtom("treasury_management, bridge_staking")))
-    metta.space().add_atom(E(S("specific_strategy"), S("yield_maximization"), ValueAtom("yield_farming, yield_vaults")))
-    metta.space().add_atom(E(S("specific_strategy"), S("arbitrage_profits"), ValueAtom("cross_chain_arbitrage, flash_loan_arbitrage")))
-    metta.space().add_atom(E(S("specific_strategy"), S("governance_influence"), ValueAtom("governance_participation, staking")))
-    metta.space().add_atom(E(S("specific_strategy"), S("institutional_treasury"), ValueAtom("treasury_management, yield_vaults")))
-    metta.space().add_atom(E(S("specific_strategy"), S("alpha_generation"), ValueAtom("algorithmic_trading, mev_extraction")))
-    metta.space().add_atom(E(S("specific_strategy"), S("portfolio_diversification"), ValueAtom("nft_lending, prediction_markets")))
-    metta.space().add_atom(E(S("specific_strategy"), S("moonshot_betting"), ValueAtom("speculative_farming, experimental_protocols")))
-    metta.space().add_atom(E(S("specific_strategy"), S("stable_yield"), ValueAtom("lending, stablecoin_lp")))
-    metta.space().add_atom(E(S("specific_strategy"), S("leveraged_exposure"), ValueAtom("leveraged_strategies, perpetuals")))
-    metta.space().add_atom(E(S("specific_strategy"), S("infrastructure_rewards"), ValueAtom("bridge_staking, zero_knowledge_mining")))
+    
 
     
     # On-Chain Trading 101 → Essential Knowledge

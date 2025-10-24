@@ -19,7 +19,8 @@ from uagents_core.contrib.protocols.chat import (
 from metta.investment_rag import InvestmentRAG
 from metta.OnChainFinance_knowledge import initialize_OnChainFinance_knowledge
 from metta.protocols_knowledge import initialize_protocols_knowledge
-from metta.utils import LLM, process_query
+from metta.utils import LLM, process_query, convert_ai_output_to_spec_strategies
+from metta.protocol_data_models import Strategy
 
 load_dotenv()
 agent = Agent(name="On Chain Finance Advisor", port=8008, mailbox=True, publish_agent_details=True)
@@ -38,6 +39,7 @@ class FinanceResponse(Model):
     query: str
     answer: str
     selected_question: Optional[str] = None
+    strategies:Optional[list[Strategy]] = None
     error: Optional[str] = None
 
 class HealthResponse(Model):
@@ -109,12 +111,15 @@ async def finance_advice(ctx: Context, req: FinanceRequest) -> FinanceResponse:
     try:
         ctx.logger.info(f"REST API request received - Query: {req.query}")
         response = process_query(req.query, rag, llm)
-        
+        # TODO should optimize below logic
         if isinstance(response, dict):
             ctx.logger.info(f"REST API response generated for query: {req.query}")
+            answer=response.get('humanized_answer', 'Could not process query')
+            strategies = convert_ai_output_to_spec_strategies(answer, llm)
             return FinanceResponse(
                 query=req.query,
-                answer=response.get('humanized_answer', 'Could not process query'),
+                answer=answer,
+                strategies = strategies,
                 selected_question=response.get('selected_question')
             )
         else:

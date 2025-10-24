@@ -85,7 +85,7 @@ def initialize_protocols_knowledge(metta: MeTTa):
     metta.space().add_atom(E(S("protocol_risks"), S("synthetix"), ValueAtom("liquidation, debt pool risk, oracle")))
     metta.space().add_atom(E(S("protocol_risks"), S("dydx"), ValueAtom("liquidation, market risk, counterparty")))
     
-    # Core Metrics Available by Protocol Type
+    # Core Metrics Available by Protocol Typep
     # Common metrics for all protocols
     metta.space().add_atom(E(S("common_metrics"), S("all_protocols"), ValueAtom("TVL, volume, user_count, fees_generated")))
     

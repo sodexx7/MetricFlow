@@ -4,6 +4,13 @@ from .investment_rag import InvestmentRAG
 from .protocols_knowledge import initialize_protocols_knowledge
 from hyperon import MeTTa
 
+from .protocol_data_models import (
+            Strategy, AMMStrategy, LendingStrategy, 
+            AMMProtocol, LendingProtocol, AMMConfig, LendingConfig,
+            AMMMetric, LendingMetric, ProtocolType, OperationType, Network
+        )
+
+
 class LLM:
     def __init__(self, api_key):
         self.client = OpenAI(
@@ -24,7 +31,7 @@ def get_intent_and_keyword(query, llm):
 #    'goal_strategy', 
     prompt = (
         f"Given the investment query: '{query}'\n"
-        "Classify the intent as one of: 'risk_profile', 'risk_level', 'expected_return', 'specific_strategy', 'on_chain_trading_101', 'faq_beginner', 'faq_researcher', 'faq_trader', 'faq_institutional', 'protocol_info', 'protocol_metrics', 'protocol_risks', 'protocol_operations', or 'unknown'.\n"
+        "Classify the intent as one of: 'risk_profile', 'risk_level', 'expected_return', 'goal_strategy', 'on_chain_trading_101', 'faq_beginner', 'faq_researcher', 'faq_trader', 'faq_institutional', 'protocol_info', 'protocol_metrics', 'protocol_risks', 'protocol_operations', or 'unknown'.\n"
         "Extract the most relevant keyword from the query:\n"
         "- For risk_profile: conservative, moderate, aggressive\n"
         "- For investment types: lending, staking, yield_farming, derivatives, etc.\n"
@@ -191,6 +198,10 @@ def query_protocols_for_strategy(strategy_keyword, llm: LLM):
             "Format as JSON with 'concrete_strategies' array containing detailed strategy objects with 'description', 'protocols_used', 'risk_level', and 'expected_return_range'."
         )
         
+
+        #  Current test for simple strategis
+        # LP ETH/USDC on Uniswap Labs with concentrated liquidity
+        # Open short position of ETH on GMX or Synthetix
         ai_response = llm.create_completion(prompt, max_tokens=400)
         try:
             concrete_strategies = json.loads(ai_response)
@@ -277,18 +288,10 @@ def process_query(query, rag: InvestmentRAG, llm: LLM):
             f"Expected Returns for {keyword}: {return_info if return_info else 'Not found'}\n"
             "Explain the return potential and factors affecting performance."
         )
-    
-    elif intent == "goal_strategy" and keyword:
-        strategy_info = rag.query_relation("goal_strategy", keyword)
-        prompt = (
-            f"Query: '{query}'\n"
-            f"Investment Strategy for {keyword}: {strategy_info if strategy_info else 'Not found'}\n"
-            "Provide detailed strategy recommendations for this goal."
-        )
     # TODO below should adjust
-    elif intent == "specific_strategy" and keyword:
+    elif intent == "goal_strategy" and keyword:
         # Get available protocols for the strategy
-        strategy_info = rag.query_relation("specific_strategy", keyword)
+        strategy_info = rag.query_relation("goal_strategy", keyword)
         print(f"strategy_info: {strategy_info}")
         # strategy_to_protocols = {
         #     'yield_farming': ['uniswap_v3', 'balancer', 'convex'],
@@ -315,6 +318,7 @@ def process_query(query, rag: InvestmentRAG, llm: LLM):
         prompt = (
             f"Query: '{query}'\n"
             f"Strategy: {keyword}\n"
+             f"Investment Strategy for {keyword}: {strategy_info if strategy_info else 'Not found'}\n"
             f"Available Protocols: {strategy_to_protocols}\n"
             "Provide investment strategy recommendations for this goal. Format your response as a numbered list with clear steps, allocation percentages, and specific protocols. Use this structure:\n"
             "1. **Protocol Name (Allocation %):** Description and implementation steps\n"
@@ -395,8 +399,8 @@ def process_query(query, rag: InvestmentRAG, llm: LLM):
 
     prompt += "\nFormat response as: 'Selected Question: <question>' on first line, 'Investment Advice: <response>' on second. Include appropriate disclaimers about consulting financial professionals."
     
-    # Use higher max_tokens for specific_strategy to ensure complete responses
-    max_tokens = 800 if intent == "specific_strategy" else 300
+    # Use higher max_tokens for goal_strategy to ensure complete responses
+    max_tokens = 800 if intent == "goal_strategy" else 300
     response = llm.create_completion(prompt, max_tokens=max_tokens)
     # todo, return strcuted format data for data panel displaying
     print(f"test--response: {response}")
@@ -429,3 +433,179 @@ def process_query(query, rag: InvestmentRAG, llm: LLM):
         return {"selected_question": selected_q, "humanized_answer": answer}
     except IndexError:
         return {"selected_question": query, "humanized_answer": response}
+
+def convert_ai_output_to_spec_strategies(ai_response_content: str, llm: LLM):
+    """
+    Convert AI output content into structured Strategy objects.
+    Extracts protocol names and operations, then constructs Strategy objects.
+    """
+    if not ai_response_content:
+        return None
+    
+    # Use AI to extract protocol names and operations from the content
+    prompt = f"""
+    Extract protocol names and operations from this investment strategy content:
+    
+    {ai_response_content}
+    
+    Look for mentions of these protocols:
+    AMM protocols: uniswap, uniswap_v3, curve, balancer
+    Lending protocols: aave, compound, morpho, euler
+    
+    Operations mentioned: swap, lending, borrowing, yield_farming, liquidity provision
+    
+    Return JSON format:
+    {{
+        "extracted_strategies": [
+            {{
+                "protocol": "protocol_name",
+                "operation": "operation_type"
+            }}
+        ]
+    }}
+    
+    Return only valid JSON, no additional text.
+    """
+    
+    try:
+        response = llm.create_completion(prompt, max_tokens=400)
+        print("AI JSON extraction response:")
+        print(f"Response type: {type(response)}")
+        print(f"Response length: {len(response) if response else 0}")
+        print(f"Response content: '{response}'")
+        print("-" * 50)
+        
+        if not response or not response.strip():
+            print("Empty response from AI, returning None")
+            return None
+            
+        extracted_data = json.loads(response)
+        print(f"Parsed JSON data: {extracted_data}")
+        
+        # Convert extracted data to Strategy objects
+        strategies = []
+        for i, item in enumerate(extracted_data.get("extracted_strategies", [])):
+            print(f"\nProcessing strategy {i+1}: {item}")
+            protocol_name = item.get("protocol", "")
+            operation = item.get("operation", "")
+            print(f"Protocol: {protocol_name}, Operation: {operation}")
+            
+            # Determine protocol type
+            amm_protocols = ["uniswap", "uniswap_v3", "curve", "balancer"]
+            lending_protocols = ["aave", "compound", "morpho", "euler"]
+            
+            try:
+                if any(p in protocol_name.lower() for p in amm_protocols):
+                    print(f"Creating AMM strategy for {protocol_name}")
+                    strategy_obj = _create_amm_strategy_object(protocol_name, operation)
+                elif any(p in protocol_name.lower() for p in lending_protocols):
+                    print(f"Creating lending strategy for {protocol_name}")
+                    strategy_obj = _create_lending_strategy_object(protocol_name, operation)
+                else:
+                    print(f"Unknown protocol type for {protocol_name}, skipping")
+                    continue
+                    
+                if strategy_obj:
+                    print(f"Successfully created strategy: {strategy_obj}")
+                    strategies.append(strategy_obj)
+                else:
+                    print(f"Failed to create strategy for {protocol_name}")
+            except Exception as e:
+                print(f"Error creating strategy for {protocol_name}: {e}")
+                continue
+        
+        return strategies
+    except json.JSONDecodeError as e:
+        print(f"JSON decode error: {e}")
+        print(f"Failed to parse response: '{response}'")
+        return None
+    except Exception as e:
+        print(f"Error converting AI output to strategies: {e}")
+        return None
+
+def _create_amm_strategy_object(protocol_name: str, operation: str):
+    """Create AMM Strategy object with basic data."""
+    
+    # Create AMM config with required fields
+    amm_config = AMMConfig(
+        pair_name="ETH/USDC",
+        pair_address="0x0000000000000000000000000000000000000000",
+        network=Network.ARB,
+        tokenA_address="0x0000000000000000000000000000000000000001",
+        tokenB_address="0x0000000000000000000000000000000000000002"
+    )
+    
+    # Create protocol
+    amm_protocol = AMMProtocol(
+        name=protocol_name,
+        type=ProtocolType.AMM,
+        ammConfig=amm_config
+    )
+    
+    # Create metrics - include all relevant AMM metrics
+    amm_metrics = [AMMMetric.historical_price, AMMMetric.liquidity_volume, AMMMetric.avg_liquidity_7day]
+    
+    # Determine operation type
+    if "liquidity" in operation.lower() or "lp" in operation.lower() or "yield" in operation.lower():
+        op_type = OperationType.LP
+    else:
+        op_type = OperationType.SWAP
+    
+    # Create strategy with protocol and optional fields based on available data
+    strategy_data = {"protocol": amm_protocol}
+    
+    # Add operation if available
+    if operation:
+        strategy_data["operation"] = op_type
+    
+    # Add metrics if we have operation context
+    if operation:
+        strategy_data["metrics"] = amm_metrics
+    
+    amm_strategy = AMMStrategy(**strategy_data)
+    
+    return Strategy(strategy=amm_strategy)
+
+def _create_lending_strategy_object(protocol_name: str, operation: str):
+    """Create lending Strategy object with basic data."""
+    from .protocol_data_models import (
+        Strategy, LendingStrategy, LendingProtocol, LendingConfig, LendingMetric,
+        ProtocolType, OperationType
+    )
+    
+    # Create lending config with required fields
+    lending_config = LendingConfig(
+        address_name=f"{protocol_name}_pool",
+        lending_token_address="0x0000000000000000000000000000000000000003"
+    )
+    
+    # Create protocol
+    lending_protocol = LendingProtocol(
+        name=protocol_name,
+        type=ProtocolType.LENDING,
+        lendingConfig=lending_config
+    )
+    
+    # Create metrics - include all relevant lending metrics
+    lending_metrics = [LendingMetric.tvl, LendingMetric.expected_yield]
+    
+    # Determine operation type
+    if "borrow" in operation.lower():
+        op_type = OperationType.BORROWING
+    else:
+        op_type = OperationType.LENDING
+    
+    # Create strategy with protocol and optional fields based on available data
+    strategy_data = {"protocol": lending_protocol}
+    
+    # Add operation if available
+    if operation:
+        strategy_data["operation"] = op_type
+    
+    # Add metrics if we have operation context
+    if operation:
+        strategy_data["metrics"] = lending_metrics
+    
+    lending_strategy = LendingStrategy(**strategy_data)
+    
+    return Strategy(strategy=lending_strategy)
