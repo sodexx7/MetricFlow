@@ -164,7 +164,7 @@ export function ChatInterface({ messages, setMessages, onUniswapDetected, onNavi
               <Avatar className="w-8 h-8 flex-shrink-0">
                 <AvatarFallback
                   className={
-                    message.role === "user" ? "bg-green-100" : "bg-blue-100"
+                    message.role === "user" ? "bg-primary/10 text-primary" : "bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300"
                   }
                 >
                   {message.role === "user" ? (
@@ -177,8 +177,8 @@ export function ChatInterface({ messages, setMessages, onUniswapDetected, onNavi
               <Card
                 className={`p-6 max-w-[80%] break-words shadow-lg border-0 ${
                   message.role === "user"
-                    ? "bg-gradient-to-br from-blue-600 to-blue-700 text-white"
-                    : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+                    ? "bg-primary text-primary-foreground dark:bg-blue-600 dark:text-white"
+                    : "bg-card text-card-foreground border border-border"
                 }`}
               >
                 <div className="break-words overflow-wrap-anywhere">
@@ -236,7 +236,7 @@ export function ChatInterface({ messages, setMessages, onUniswapDetected, onNavi
                   )}
                 </div>
                 <span className={`text-xs mt-4 block font-medium ${
-                  message.role === "user" ? "opacity-80" : "text-gray-500"
+                  message.role === "user" ? "opacity-80" : "text-muted-foreground"
                 }`}>
                   {message.timestamp.toLocaleTimeString()}
                 </span>

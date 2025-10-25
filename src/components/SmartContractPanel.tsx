@@ -45,6 +45,7 @@ export function SmartContractPanel() {
     useState<TransactionStatus>("idle");
   const [approveTxHash, setApproveTxHash] = useState("");
   const [swapLpTxHash, setSwapLpTxHash] = useState("");
+  const [tokenId, setTokenId] = useState<string | null>(null);
   const [estimateResult, setEstimateResult] = useState<EstimateResult | null>(
     null
   );
@@ -120,6 +121,7 @@ export function SmartContractPanel() {
   const handleSwapLp = async () => {
     setSwapLpStatus("pending");
     setSwapLpTxHash("");
+    setTokenId(null);
 
     const url = import.meta.env.VITE_PIMLICO_URL as string;
 
@@ -254,6 +256,18 @@ export function SmartContractPanel() {
       const userOpHash = result.result;
       setSwapLpTxHash(userOpHash);
       setSwapLpStatus("success");
+
+      // Wait for UserOperation to be processed and extract token ID
+      setTimeout(async () => {
+        try {
+          const extractedTokenId = await getTokenIdFromUserOp(userOpHash);
+          if (extractedTokenId) {
+            setTokenId(extractedTokenId);
+          }
+        } catch (error) {
+          console.error("Failed to extract token ID:", error);
+        }
+      }, 5000); // Wait 5 seconds for the UserOp to be processed
     } catch (error) {
       console.error("Swap + LP failed:", error);
       setSwapLpStatus("failed");
@@ -262,6 +276,84 @@ export function SmartContractPanel() {
 
   const numberToHex = (num: bigint): string => {
     return `0x${num.toString(16)}`;
+  };
+
+  // Function to extract token ID from UserOperation receipt
+  const getTokenIdFromUserOp = async (userOpHash: string): Promise<string | null> => {
+    try {
+      const url = import.meta.env.VITE_PIMLICO_URL as string;
+      
+      // Get UserOperation receipt
+      const receiptResponse = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          method: "eth_getUserOperationReceipt",
+          params: [userOpHash],
+          id: 1,
+        }),
+      });
+
+      const receiptResult = await receiptResponse.json();
+      
+      if (receiptResult.error || !receiptResult.result) {
+        console.log("UserOperation not yet processed or error:", receiptResult.error);
+        return null;
+      }
+
+      const receipt = receiptResult.result;
+      const actualTxHash = receipt.receipt?.transactionHash;
+      
+      if (!actualTxHash) {
+        console.log("No transaction hash found in receipt");
+        return null;
+      }
+
+      // Get the transaction receipt to parse logs
+      const txReceiptResponse = await fetch(
+        `https://arb-mainnet.g.alchemy.com/v2/wWCcLJyDISJ25dvLZvCzCK9wKVVI7HPt`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            method: "eth_getTransactionReceipt",
+            params: [actualTxHash],
+            id: 1,
+          }),
+        }
+      );
+
+      const txReceiptResult = await txReceiptResponse.json();
+      
+      if (txReceiptResult.error || !txReceiptResult.result) {
+        console.log("Failed to get transaction receipt:", txReceiptResult.error);
+        return null;
+      }
+
+      const logs = txReceiptResult.result.logs;
+      
+      // Look for NFT Transfer event (ERC721 transfer) which indicates minting
+      // Transfer event signature: Transfer(address,address,uint256)
+      const transferEventSignature = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+      
+      for (const log of logs) {
+        if (log.topics[0] === transferEventSignature && 
+            log.topics[1] === "0x0000000000000000000000000000000000000000000000000000000000000000") {
+          // This is a mint (from address 0x0), extract token ID from third topic
+          const tokenId = BigInt(log.topics[3]).toString();
+          console.log("Extracted token ID from logs:", tokenId);
+          return tokenId;
+        }
+      }
+
+      console.log("No token ID found in transaction logs");
+      return null;
+    } catch (error) {
+      console.error("Error extracting token ID:", error);
+      return null;
+    }
   };
 
   // Function to check current allowance
@@ -748,15 +840,20 @@ export function SmartContractPanel() {
                     <p className="text-xs text-green-700">
                       View Position on Uniswap:
                     </p>
-                    <a
-                      href={`https://app.uniswap.org/positions/v3/arbitrum/[TOKEN_ID]`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-blue-600 hover:text-blue-800 underline"
-                    >
-                      🦄 Open in Uniswap (Replace [TOKEN_ID] with actual token
-                      ID)
-                    </a>
+                    {tokenId ? (
+                      <a
+                        href={`https://app.uniswap.org/positions/v3/arbitrum/${tokenId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-600 hover:text-blue-800 underline"
+                      >
+                        🦄 Open in Uniswap (Token ID: {tokenId})
+                      </a>
+                    ) : (
+                      <span className="text-xs text-gray-500">
+                        🦄 Extracting token ID...
+                      </span>
+                    )}
                   </div>
                 </div>
               </AlertDescription>

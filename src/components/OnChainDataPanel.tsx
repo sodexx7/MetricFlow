@@ -149,80 +149,13 @@ export function OnChainDataPanel({ uniswapStrategies }: OnChainDataPanelProps) {
             );
           })
         ) : (
-          // Show default metrics
-          <>
-            <Card className="border-blue-500/20 bg-card/50">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">ETH Price</p>
-                    <p className="text-2xl">$3,250</p>
-                    <div className="flex items-center gap-1 text-green-500">
-                      <TrendingUp className="w-4 h-4" />
-                      <span className="text-sm">+14.0%</span>
-                    </div>
-                  </div>
-                  <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center">
-                    <DollarSign className="w-6 h-6 text-blue-500" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-green-500/20 bg-card/50">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">24h Volume</p>
-                    <p className="text-2xl">$12.5B</p>
-                    <div className="flex items-center gap-1 text-green-500">
-                      <TrendingUp className="w-4 h-4" />
-                      <span className="text-sm">+8.3%</span>
-                    </div>
-                  </div>
-                  <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center">
-                    <Activity className="w-6 h-6 text-green-500" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-orange-500/20 bg-card/50">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Gas Fee</p>
-                    <p className="text-2xl">22 Gwei</p>
-                    <div className="flex items-center gap-1 text-green-500">
-                      <TrendingDown className="w-4 h-4" />
-                      <span className="text-sm">-12.0%</span>
-                    </div>
-                  </div>
-                  <div className="w-12 h-12 rounded-full bg-orange-500/10 flex items-center justify-center">
-                    <Fuel className="w-6 h-6 text-orange-500" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-purple-500/20 bg-card/50">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Active Users</p>
-                    <p className="text-2xl">145K</p>
-                    <div className="flex items-center gap-1 text-green-500">
-                      <TrendingUp className="w-4 h-4" />
-                      <span className="text-sm">+5.2%</span>
-                    </div>
-                  </div>
-                  <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center">
-                    <Users className="w-6 h-6 text-purple-500" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </>
+          // Show empty state message
+          <div className="flex items-center justify-center col-span-2 py-8">
+            <div className="text-center">
+              <BarChart3 className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+              <p className="text-muted-foreground">No related protocols metrics data</p>
+            </div>
+          </div>
         )}
       </div>
 
@@ -256,25 +189,10 @@ export function OnChainDataPanel({ uniswapStrategies }: OnChainDataPanelProps) {
                   </div>
                 </>
               ) : (
-                // Show default market summary
-                <>
-                  <div>
-                    <p className="text-muted-foreground">Market Cap</p>
-                    <p>$390.2B</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">24h High</p>
-                    <p>$3,285</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">24h Low</p>
-                    <p>$2,845</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">TVL</p>
-                    <p>$52.8B</p>
-                  </div>
-                </>
+                // Show empty state for market summary
+                <div className="flex items-center justify-center col-span-2 py-4">
+                  <p className="text-sm text-muted-foreground">No market data available</p>
+                </div>
               )}
             </div>
           </div>

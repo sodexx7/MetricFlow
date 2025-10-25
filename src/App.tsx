@@ -13,12 +13,15 @@ import { MessageSquare, BarChart3, FileCode } from "lucide-react";
 import { Toaster } from "./components/ui/sonner";
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { ThemeToggle } from "./components/ThemeToggle";
+import { useTheme } from "./contexts/ThemeContext";
 import metricsFlowLogo from "./assets/MetricsFlowLogo.png";
+import metricsFlowLogoWhite from "./assets/MetricsFlowLogoWhite.png";
 
 type LayoutMode = "chat-only" | "chat-data" | "chat-contract";
 type ViewMode = "main" | "data-details";
 
 export default function App() {
+  const { theme } = useTheme();
   const [layoutMode, setLayoutMode] = useState<LayoutMode>("chat-only");
   const [viewMode, setViewMode] = useState<ViewMode>("main");
   const [hasUniswapStrategy, setHasUniswapStrategy] = useState(false);
@@ -85,7 +88,7 @@ export default function App() {
         <div className="flex items-center justify-between px-6 py-5">
           <div className="flex items-center gap-4">
             <img
-              src={metricsFlowLogo}
+              src={theme === 'light' ? metricsFlowLogoWhite : metricsFlowLogo}
               alt="MetricsFlow Logo"
               className="object-contain"
               style={{ width: "90px", height: "90px" }}
