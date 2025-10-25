@@ -84,7 +84,7 @@ Only support arbtrium uniswap -v3 [ARBITRUM_WETH_USDC_500_POOL](https://arbiscan
 
 #### What challenges did you solve, and how?
 
-1. How to Integrate AI, Metric Data Monitoring, and Smart Contract Execution?
+**1. How to Integrate AI, Metric Data Monitoring, and Smart Contract Execution?**
 
 One of the main challenges was figuring out how to make AI, metric data monitoring, and smart contract execution work together to meet specific user demands — for example, showing only the defined metrics of supported protocols and exposing only their available operations.
 
@@ -101,7 +101,7 @@ For smart contract execution, if the standardized strategy includes a supported 
 
 This tight integration between AI strategy, metric data, and smart contract operations ensures that only valid and relevant data and actions are exposed to the user.
 
-2. How to achive efficiency Implementation of Complex Operations in Smart Contracts?
+**2. How to achive efficiency Implementation of Complex Operations in Smart Contracts?**
 
 Step 1 — Abstract Contract Design:
 Using an Abstract Contract (EIP-4337), defined the complex operation functions.
@@ -124,3 +124,7 @@ Creating additional libraries for other protocols, or Extending the existing lib
 Step 3 — Upgradeability:
 Sometimes, the implementation logic needs to be adjusted or extended.
 To handle this gracefully, plan to use the upgradeable proxy pattern to deal with feature.
+
+## 2. RoadMap
+
+![RoadMap](RoadMap.png)
