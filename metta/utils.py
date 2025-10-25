@@ -293,15 +293,6 @@ def process_query(query, rag: InvestmentRAG, llm: LLM):
         # Get available protocols for the strategy
         strategy_info = rag.query_relation("goal_strategy", keyword)
         print(f"strategy_info: {strategy_info}")
-        # strategy_to_protocols = {
-        #     'yield_farming': ['uniswap_v3', 'balancer', 'convex'],
-        #     'lending': ['aave', 'compound', 'morpho', 'euler'],
-        #     'stablecoin_lp': ['curve'],
-        #     'yield_vaults': ['yearn'],
-        #     'yield_trading': ['pendle'],
-        #     'perpetuals': ['gmx', 'dydx'],
-        #     'synthetic_assets': ['synthetix']
-        # }
 
         strategy_to_protocols = {
             'yield_farming': ['uniswap_v3'],
@@ -318,7 +309,7 @@ def process_query(query, rag: InvestmentRAG, llm: LLM):
         prompt = (
             f"Query: '{query}'\n"
             f"Strategy: {keyword}\n"
-             f"Investment Strategy for {keyword}: {strategy_info if strategy_info else 'Not found'}\n"
+            f"Investment Strategy for {keyword}: {strategy_info if strategy_info else 'Not found'}\n"
             f"Available Protocols: {strategy_to_protocols}\n"
             "Provide investment strategy recommendations for this goal. Format your response as a numbered list with clear steps, allocation percentages, and specific protocols. Use this structure:\n"
             "1. **Protocol Name (Allocation %):** Description and implementation steps\n"
@@ -526,7 +517,7 @@ def convert_ai_output_to_spec_strategies(ai_response_content: str, llm: LLM):
 def _create_amm_strategy_object(protocol_name: str, operation: str):
     """Create AMM Strategy object with basic data."""
     
-    # Create AMM config with required fields
+    # Create AMM config with required fields. TODO should optmize, for now just hardcode.
     amm_config = AMMConfig(
         pair_name="ETH/USDC",
         pair_address="0x0000000000000000000000000000000000000000",

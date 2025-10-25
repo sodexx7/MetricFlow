@@ -152,6 +152,14 @@ ASI_ONE_API_KEY=your_asi_one_api_key_here
 
    At the moment, only the local environment is supported. The branch front end can be accessed while running the local metric-ai-agent.
 
+## TODO
+
+1. Refactor the code and review the prompt’s efficiency.
+
+2. Build a well-structured and resilient strategy data model along with related functions to provide sufficient flexibility for interacting with AI.
+
+3. Implement a consistent approach to help the AI and front end maintain the strategy data model effectively.
+
 ## Materials
 
 Reference [singularity-net-metta-fetch-financial-advisor-agent](https://github.com/fetchai/innovation-lab-examples/tree/main/web3/singularity-net-metta-fetch-financial-advisor-agent)
