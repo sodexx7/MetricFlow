@@ -18,7 +18,10 @@ All of these factors create barriers to wider on-chain finance adoption.
 
 ## 2. Solution
 
+WorkFlow
 ![architecture](architecture.png)
+How to made
+![howtoMade.png](howtoMade.png)
 
 This protocol empowers users and institutions to develop comprehensive understanding of their risk profiles and investment strategies. By leveraging AI-driven analysis of real-time market data and sophisticated protocol metrics, users can dynamically assess risks and opportunities across DeFi protocols. The platform provides modular DeFi building blocks that enable users to construct customized strategies aligned with their specific objectives.
 
