@@ -1,0 +1,19 @@
+{
+    "network": "arbitrum-mainnet",
+    "chainId": 42161,
+    "deployedAt": "2025-10-23T00:00:00.000Z",
+    "deployer": "0xFDA4871A65116f586",
+    "contracts": {
+        "SmartAccount": {
+            "address": "0x99D99380e034032de885C69aF429B769A6D048b9",
+            "deployedAt": "2025-10-23T00:00:00.000Z",
+            "deploymentTx": "0x38d593616cec10c6ae7fe76b177f84e8b48b3e2becc6cc4cf69f4f291dc96868",
+            "blockNumber": 392555138,
+            "verified": true,
+            "version": "1.0.0"
+        },
+        "USDC": {
+            "address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831"
+        }
+    }
+}

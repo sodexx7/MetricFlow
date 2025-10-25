@@ -1,9 +1,8 @@
 # MetricFlow
 
-Short description
-helping different level users analyze cutomed strategies by leveraging AI along with core instriciate metric data for primitive defi protols or defi lego and support one-clieck efficiency for complex operations
+Helping different level users analyze cutomed strategies by leveraging AI along with core instriciate metric data for primitive defi protols or defi lego and support one-clieck efficiency for complex operations
 
-## Background
+## 1. Background
 
 The DeFi market has matured significantly with the emergence of diverse protocols including AMMs, lending platforms, route aggregators, and automated yield optimization strategies. However, significant gaps remain for both retail and institutional users, from beginners to experienced traders.
 
@@ -17,9 +16,9 @@ Given the conceptual complexity and dynamic market conditions, even institutiona
 
 All of these factors create barriers to wider on-chain finance adoption.
 
-## Solution
+## 2. Solution
 
-![draft_architecture](draft_architecture.png)
+![architecture](architecture.png)
 
 This protocol empowers users and institutions to develop comprehensive understanding of their risk profiles and investment strategies. By leveraging AI-driven analysis of real-time market data and sophisticated protocol metrics, users can dynamically assess risks and opportunities across DeFi protocols. The platform provides modular DeFi building blocks that enable users to construct customized strategies aligned with their specific objectives.
 
@@ -41,10 +40,10 @@ Leveraging comprehensive protocol metrics and real-time market data, the AI assi
 
 Protocol-specific metrics dashboard displaying critical performance indicators tailored to each DeFi category:
 
-- **AMMs**: Slippage tolerance, price impact, liquidity depth, volume trends
-- **Lending Protocols**: Utilization rates, borrowing costs, liquidation thresholds, reserve factors
-- **Yield Farms**: APY breakdown, impermanent loss risk, token emission schedules
-- **Cross-chain Bridges**: Transfer fees, confirmation times, security audits
+-   **AMMs**: Slippage tolerance, price impact, liquidity depth, volume trends
+-   **Lending Protocols**: Utilization rates, borrowing costs, liquidation thresholds, reserve factors
+-   **Yield Farms**: APY breakdown, impermanent loss risk, token emission schedules
+-   **Cross-chain Bridges**: Transfer fees, confirmation times, security audits
 
 ### 3. Modular DeFi Building Blocks
 
@@ -63,8 +62,65 @@ cross-chain plugin if needed
 
 Apply Account Abstraction (EIP-4337) to simplify complex smart contract interactions and help users efficiently execute their strategies.
 
-## Core Desgin
+## 3. Core componets
 
-### 1. AI_Agent_Architecture_Draft
+1. [metric-flow-ai](https://github.com/sodexx7/MetricFlow/tree/metric-flow-ai-agent)
+2. [SmartContract Desgin](SmartContract.md)
+3. [front-end](https://github.com/sodexx7/MetricFlow/tree/front-end)
+4. [metric_envio_indexer](https://github.com/sodexx7/MetricFlow/tree/metric_envio_indexer)
 
-![AI_Agent_Architecture_Draft](AI/AI_Agent_Architecture_draft.png)
+#### Current Stage
+
+Only support arbtrium uniswap -v3 [ARBITRUM_WETH_USDC_500_POOL](https://arbiscan.io/address/0xC6962004f452bE9203591991D15f6b388e09E8D0)
+
+### 4. Setup
+
+1. Use the deployed smart contract or deploy new smart contract.
+2. Run metric-flow-ai-agent and make sure it is properly connected to the agent service.
+3. Deploy Envio and verify that the host services are working correctly. (DOING)
+4. Run the front end locally. (DOING)
+
+### Q&A
+
+#### What challenges did you solve, and how?
+
+1. How to Integrate AI, Metric Data Monitoring, and Smart Contract Execution?
+
+One of the main challenges was figuring out how to make AI, metric data monitoring, and smart contract execution work together to meet specific user demands — for example, showing only the defined metrics of supported protocols and exposing only their available operations.
+
+When AI outputs strategies that involve specific protocols, the system must merge the AI output with the supported protocols, producing a standardized strategy data structure.
+This structure can then be used by the metric monitoring system. For example:
+
+Metric monitoring retrieves the protocol’s available metrics.
+
+It then queries real-time metric data from Envio.
+
+Envio provides the flexibility to define and implement any custom metric logic based on raw data.
+
+For smart contract execution, if the standardized strategy includes a supported protocol, the smart contract panel will automatically display the corresponding protocol information along with its available operations for users.
+
+This tight integration between AI strategy, metric data, and smart contract operations ensures that only valid and relevant data and actions are exposed to the user.
+
+2. How to achive efficiency Implementation of Complex Operations in Smart Contracts?
+
+Step 1 — Abstract Contract Design:
+Using an Abstract Contract (EIP-4337), defined the complex operation functions.
+In accordance with the abstract contract requirements, should also implement:
+
+Signature verification logic
+
+Essential supporting logic, such as maintaining the relationship between users and the smart contract
+
+Step 2 — Handling Protocol Diversity:
+Different on-chain financial protocols have different characteristics. Even within the same protocol type, implementations can vary.
+This presents a major challenge — not only integrating multiple protocols but also requiring a deep understanding of the related protocols.
+
+My current solution is to build dedicated contracts or libraries to handle a single type of operation.
+For example, UniswapProvideLibrary provides functions for swap and mint LP operations.
+The main smart contract can call these helper libraries as needed.
+In the future, more complex operations can be added by:
+Creating additional libraries for other protocols, or Extending the existing libraries with new functionality.
+
+Step 3 — Upgradeability:
+Sometimes, the implementation logic needs to be adjusted or extended.
+To handle this gracefully, plan to use the upgradeable proxy pattern to deal with feature.

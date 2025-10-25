@@ -22,6 +22,9 @@ contract SmartAccount is Ownable, IAccount {
 
     event SwapExecuted(uint256 totalUsdcAmount, uint256 usdcSwapped, uint256 wethReceived);
 
+    event TokenWithdrawn(address indexed token, address indexed to, uint256 amount);
+    event ETHWithdrawn(address indexed to, uint256 amount);
+
     IEntryPoint entryPoint;
 
     constructor(address _ep) Ownable(_msgSender()) {
@@ -90,7 +93,12 @@ contract SmartAccount is Ownable, IAccount {
         );
 
         // Swap USDC to WETH using SwapRouter
-        wethReceived = UniswapV3ProviderLib.swapUSDCToWETH(UniswapV3Constants.ARBITRUM_SWAP_ROUTER, address(this), usdcForLiquidity, minWethOut);
+        wethReceived = UniswapV3ProviderLib.swapUSDCToWETH(
+            UniswapV3Constants.ARBITRUM_SWAP_ROUTER,
+            address(this),
+            usdcForLiquidity,
+            minWethOut
+        );
 
         require(wethReceived > 0, "Swap failed: no output received");
         require(wethReceived >= minWethOut, "Swap failed: insufficient output");
@@ -125,4 +133,36 @@ contract SmartAccount is Ownable, IAccount {
     }
 
     receive() external payable {}
+
+    ////////////////////////////////////////////////JUST FOR OWNER DEALING WITH TOKENS, NO RELATIONSHIPS WITH THE DESIGN////////////////////////
+
+    /**
+     * @notice Withdraw ETH to specified address
+     * @param to Recipient address
+     * @param amount Amount of ETH to withdraw (in wei)
+     */
+    function withdrawETH(address to, uint256 amount) external onlyOwner {
+        require(to != address(0), "Invalid recipient address");
+        require(amount > 0, "Amount must be greater than 0");
+        require(address(this).balance >= amount, "Insufficient ETH balance");
+
+        (bool success, ) = payable(to).call{ value: amount }("");
+        require(success, "ETH transfer failed");
+        emit ETHWithdrawn(to, amount);
+    }
+
+    /**
+     * @notice Withdraw any ERC20 token to specified address
+     * @param token Token contract address
+     * @param to Recipient address
+     * @param amount Amount to withdraw
+     */
+    function withdrawToken(address token, address to, uint256 amount) external onlyOwner {
+        require(token != address(0), "Invalid token address");
+        require(to != address(0), "Invalid recipient address");
+        require(amount > 0, "Amount must be greater than 0");
+
+        IERC20(token).safeTransfer(to, amount);
+        emit TokenWithdrawn(token, to, amount);
+    }
 }

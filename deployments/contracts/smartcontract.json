@@ -1,0 +1,108 @@
+{
+    "contractName": "SmartAccount",
+    "sourceName": "src/SmartAccount.sol",
+    "networks": {
+        "arbitrum-mainnet": {
+            "address": "0x99D99380e034032de885C69aF429B769A6D048b9",
+            "transactionHash": "0x38d593616cec10c6ae7fe76b177f84e8b48b3e2becc6cc4cf69f4f291dc96868",
+            "blockNumber": 392555138
+        }
+    },
+    "abi": [
+        {
+            "type": "function",
+            "name": "uniswapSwapAndMint",
+            "inputs": [
+                {
+                    "name": "user",
+                    "type": "address",
+                    "internalType": "address"
+                },
+                {
+                    "name": "totalUsdcAmount",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "slippagePercent",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "tokenId",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "amount0Used",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "amount1Used",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "event",
+            "name": "SwapAndMintExecuted",
+            "inputs": [
+                {
+                    "name": "usdcForLiquidity",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "wethReceived",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "amount0Used",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "amount1Used",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "event",
+            "name": "SwapExecuted",
+            "inputs": [
+                {
+                    "name": "totalUsdcAmount",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "usdcSwapped",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                },
+                {
+                    "name": "wethReceived",
+                    "type": "uint256",
+                    "indexed": false,
+                    "internalType": "uint256"
+                }
+            ],
+            "anonymous": false
+        }
+    ]
+}
