@@ -2,11 +2,11 @@
 name: envio-indexer
 networks:
   - id: 42161
-    start_block: 390116357
+    start_block: 393476764
     contracts:
       - name: ETHUSDC005
         address:
-          - 0xC31E54c7a869B9FcBEcc14363CF510d1c41fa443
+          - 0xC6962004f452bE9203591991D15f6b388e09E8D0
         handler: src/EventHandlers.ts
         events:
           - event: Burn(address indexed owner, int24 indexed tickLower, int24 indexed tickUpper, uint128 amount, uint256 amount0, uint256 amount1)
