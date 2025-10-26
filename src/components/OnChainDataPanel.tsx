@@ -216,7 +216,7 @@ const useCurrentPrice = () => {
   const fetchCurrentPrice = async () => {
     try {
       const response = await fetch(
-        "https://indexer.dev.hyperindex.xyz/bb3a80b/v1/graphql",
+        import.meta.env.VITE_ENVIO_INDEXER_URL,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -354,12 +354,12 @@ const useLiquidityEvents = (network: string = "arbitrum") => {
     setLoading(true);
     try {
       const [burnResponse, mintResponse] = await Promise.all([
-        fetch("https://indexer.dev.hyperindex.xyz/bb3a80b/v1/graphql", {
+        fetch(import.meta.env.VITE_ENVIO_INDEXER_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ query: GET_BURN_EVENTS }),
         }),
-        fetch("https://indexer.dev.hyperindex.xyz/bb3a80b/v1/graphql", {
+        fetch(import.meta.env.VITE_ENVIO_INDEXER_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ query: GET_MINT_EVENTS }),
@@ -474,12 +474,12 @@ const useLargestLiquidityEvents = (network: string = "arbitrum") => {
     setLoading(true);
     try {
       const [burnResponse, mintResponse] = await Promise.all([
-        fetch("https://indexer.dev.hyperindex.xyz/bb3a80b/v1/graphql", {
+        fetch(import.meta.env.VITE_ENVIO_INDEXER_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ query: GET_BURN_EVENTS }),
         }),
-        fetch("https://indexer.dev.hyperindex.xyz/bb3a80b/v1/graphql", {
+        fetch(import.meta.env.VITE_ENVIO_INDEXER_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ query: GET_MINT_EVENTS }),
