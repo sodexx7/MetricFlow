@@ -44,6 +44,12 @@ Start the development server:
 npm run dev
 ```
 
+Current using envio deploped indexer: https://indexer.dev.hyperindex.xyz/bb3a80b/v1/graphql
+
+## TODO
+
+1. Shoud optmize the vibe code dealing with envio quering logic
+
 ## Technology Stack
 
 - React 19
