@@ -1,7 +1,4 @@
-import { encodeFunctionData, numberToHex, parseEther, formatEther, isAddress, createPublicClient, http } from "viem";
-import { mainnet, arbitrum } from "viem/chains";
-import { writeContract, readContract } from "wagmi/actions";
-import { config } from "@rainbow-me/rainbowkit";
+import { encodeFunctionData, parseEther, formatEther, isAddress } from "viem";
 
 // Contract addresses - update these based on your deployment
 export const contractAddresses = {
@@ -120,9 +117,11 @@ export function validateBlockNumber(blockNumber: string | number): boolean {
 
 // Error handling
 export class BlockchainError extends Error {
-  constructor(message: string, public code?: string) {
+  public code?: string;
+  constructor(message: string, code?: string) {
     super(message);
     this.name = 'BlockchainError';
+    this.code = code;
   }
 }
 
