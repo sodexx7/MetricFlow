@@ -1,6 +1,8 @@
-# MetricFlow
+# MetricsFlow
 
 Helping different level users analyze cutomed strategies by leveraging AI along with core instriciate metric data for primitive defi protols or defi lego and support one-clieck efficiency for complex operations
+
+**For now, Only support arbitrum.Before interact with smart Contract, guarantee or deposit enough gas(1 dollar is ok)**
 
 ## 1. Background
 
