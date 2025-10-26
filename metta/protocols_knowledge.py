@@ -90,9 +90,9 @@ def initialize_protocols_knowledge(metta: MeTTa):
     metta.space().add_atom(E(S("common_metrics"), S("all_protocols"), ValueAtom("TVL, volume, user_count, fees_generated")))
     
     # AMM Specific Metrics
-    metta.space().add_atom(E(S("protocol_metrics"), S("uniswap_v3"), ValueAtom("trading_pair, current_price, historical_price, liquidity_volume, 7day_avg_liquidity, impermanent_loss")))
-    metta.space().add_atom(E(S("protocol_metrics"), S("curve"), ValueAtom("trading_pair, current_price, historical_price, liquidity_volume, 7day_avg_liquidity, impermanent_loss, depeg_events")))
-    metta.space().add_atom(E(S("protocol_metrics"), S("balancer"), ValueAtom("trading_pair, current_price, historical_price, liquidity_volume, 7day_avg_liquidity, impermanent_loss, weight_changes")))
+    metta.space().add_atom(E(S("protocol_metrics"), S("uniswap_v3"), ValueAtom("trading_pair, current_price, liquidity_volume, 7day_avg_liquidity, impermanent_loss")))
+    metta.space().add_atom(E(S("protocol_metrics"), S("curve"), ValueAtom("trading_pair, current_price , liquidity_volume, 7day_avg_liquidity, impermanent_loss, depeg_events")))
+    metta.space().add_atom(E(S("protocol_metrics"), S("balancer"), ValueAtom("trading_pair, current_price, liquidity_volume, 7day_avg_liquidity, impermanent_loss, weight_changes")))
     
     # Lending Specific Metrics
     metta.space().add_atom(E(S("protocol_metrics"), S("aave"), ValueAtom("supply_rate, borrow_rate, utilization_rate, liquidation_threshold, health_factor, collateral_ratio")))

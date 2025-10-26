@@ -33,9 +33,11 @@ class AMMConfig(Model):
 
 # Below data is empty, just help front-end decide which metrics should monitor
 class AMMMetric(Enum):
-    historical_price = "historical_price"
+    current_price = "current_price"
     liquidity_volume = "liquidity_volume"
     avg_liquidity_7day = "avg_liquidity_7day"
+
+    # trading_pair, current_price, liquidity_volume, 7day_avg_liquidity, impermanent_loss
 
 class AMMProtocol(Model):
     name: str

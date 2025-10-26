@@ -520,10 +520,12 @@ def _create_amm_strategy_object(protocol_name: str, operation: str):
     # Create AMM config with required fields. TODO should optmize, for now just hardcode.
     amm_config = AMMConfig(
         pair_name="ETH/USDC",
-        pair_address="0x0000000000000000000000000000000000000000",
+        pair_address="0xC6962004f452bE9203591991D15f6b388e09E8D0",
         network=Network.ARB,
-        tokenA_address="0x0000000000000000000000000000000000000001",
-        tokenB_address="0x0000000000000000000000000000000000000002"
+        # ARBITRUM_WETH
+        tokenA_address="0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
+        # ARBITRUM_USDC
+        tokenB_address="0xaf88d065e77c8cC2239327C5EDb3A432268e5831"
     )
     
     # Create protocol
@@ -534,7 +536,7 @@ def _create_amm_strategy_object(protocol_name: str, operation: str):
     )
     
     # Create metrics - include all relevant AMM metrics
-    amm_metrics = [AMMMetric.historical_price, AMMMetric.liquidity_volume, AMMMetric.avg_liquidity_7day]
+    amm_metrics = [AMMMetric.current_price, AMMMetric.liquidity_volume, AMMMetric.avg_liquidity_7day]
     
     # Determine operation type
     if "liquidity" in operation.lower() or "lp" in operation.lower() or "yield" in operation.lower():
