@@ -80,8 +80,8 @@ Only support arbtrium uniswap -v3 [ARBITRUM_WETH_USDC_500_POOL](https://arbiscan
 
 1. Use the deployed smart contract or deploy new smart contract.
 2. Run metric-flow-ai-agent and make sure it is properly connected to the agent service.
-3. Deploy Envio and verify that the host services are working correctly. (DOING)
-4. Run the front end locally. (DOING)
+3. Deploy Envio and verify that the host services are working correctly.
+4. Run the front end locally.
 
 ### Q&A
 
