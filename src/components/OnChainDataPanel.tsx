@@ -639,7 +639,7 @@ export function OnChainDataPanel({ uniswapStrategies, debugMode }: OnChainDataPa
     "fees_24h",
   ];
   const metricsToShow = hasUniswapData ? uniswapMetrics : defaultMetrics;
-  const shouldShowMetrics = metricsToShow.length > 0;
+  const shouldShowMetrics = (hasUniswapData || debugMode) && metricsToShow.length > 0;
 
   // Generate metrics data when price or pool info changes
   useEffect(() => {
@@ -785,6 +785,52 @@ export function OnChainDataPanel({ uniswapStrategies, debugMode }: OnChainDataPa
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Show default content when no Uniswap data and debug is off */}
+      {!hasUniswapData && !debugMode && (
+        <div className="space-y-4">
+          <Card className="border-primary/20">
+            <CardContent className="p-6">
+              <div className="text-center space-y-4">
+                <BarChart3 className="w-16 h-16 text-muted-foreground mx-auto" />
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">On-Chain Data Dashboard</h3>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                    <Activity className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Network Activity</p>
+                    <p className="text-xs text-muted-foreground">Real-time monitoring</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                    <DollarSign className="w-6 h-6 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Market Data</p>
+                    <p className="text-xs text-muted-foreground">Price & volume tracking</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       )}
 
       <div className="grid grid-cols-2 gap-3">

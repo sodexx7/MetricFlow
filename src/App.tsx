@@ -90,7 +90,7 @@ export default function App() {
         <div className="flex items-center justify-between px-6 py-5">
           <div className="flex items-center gap-4">
             <img
-              src={theme === 'light' ? metricsFlowLogoWhite : metricsFlowLogo}
+              src={theme === 'dark' ? metricsFlowLogo : metricsFlowLogoWhite}
               alt="MetricsFlow Logo"
               className="object-contain"
               style={{ width: "90px", height: "90px" }}
