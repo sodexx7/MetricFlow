@@ -24,9 +24,10 @@ interface ChatInterfaceProps {
   onUniswapDetected?: (hasUniswap: boolean, strategies?: Strategy[]) => void;
   onNavigateToContract?: () => void;
   onNavigateToData?: () => void;
+  debugMode?: boolean;
 }
 
-export function ChatInterface({ messages, setMessages, onUniswapDetected, onNavigateToContract, onNavigateToData }: ChatInterfaceProps) {
+export function ChatInterface({ messages, setMessages, onUniswapDetected, onNavigateToContract, onNavigateToData, debugMode }: ChatInterfaceProps) {
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -62,13 +63,21 @@ export function ChatInterface({ messages, setMessages, onUniswapDetected, onNavi
     setMessages((prev) => [...prev, loadingMessage]);
 
     try {
+      // Modify query based on debug mode
+      const modifiedQuery = debugMode 
+        ? `[DEBUG MODE - Do not suggest Uniswap strategies or operations. Provide general DeFi information only.] ${currentInput}`
+        : currentInput;
+
       // Call the backend API
       const response = await fetch("http://127.0.0.1:8008/on-chain-finance", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ query: currentInput }),
+        body: JSON.stringify({ 
+          query: modifiedQuery,
+          debugMode: debugMode 
+        }),
       });
 
       if (!response.ok) {
@@ -93,8 +102,8 @@ export function ChatInterface({ messages, setMessages, onUniswapDetected, onNavi
 
       console.log("Final financeResponse:", financeResponse);
 
-      // Check for Uniswap strategies and notify parent
-      if (hasStrategies && onUniswapDetected) {
+      // Check for Uniswap strategies and notify parent (skip in debug mode)
+      if (hasStrategies && onUniswapDetected && !debugMode) {
         console.log("Checking for Uniswap strategies...");
         const hasUniswap = checkHasUniswapStrategy(financeResponse.strategies);
         console.log("Uniswap detection result:", hasUniswap);
@@ -105,6 +114,10 @@ export function ChatInterface({ messages, setMessages, onUniswapDetected, onNavi
         ) : [];
         
         onUniswapDetected(hasUniswap, uniswapStrategies);
+      } else if (debugMode && onUniswapDetected) {
+        // In debug mode, ensure no Uniswap strategies are detected
+        console.log("Debug mode: Preventing Uniswap detection");
+        onUniswapDetected(false, []);
       }
 
       const aiResponse: Message = {

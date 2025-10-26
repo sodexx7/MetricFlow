@@ -9,8 +9,9 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "./components/ui/resizable";
-import { MessageSquare, BarChart3, FileCode } from "lucide-react";
+import { MessageSquare, BarChart3, FileCode, Bug } from "lucide-react";
 import { Toaster } from "./components/ui/sonner";
+import { Tooltip, TooltipTrigger, TooltipContent } from "./components/ui/tooltip";
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { ThemeToggle } from "./components/ThemeToggle";
 import { useTheme } from "./contexts/ThemeContext";
@@ -24,6 +25,7 @@ export default function App() {
   const { theme } = useTheme();
   const [layoutMode, setLayoutMode] = useState<LayoutMode>("chat-only");
   const [viewMode, setViewMode] = useState<ViewMode>("main");
+  const [debugMode, setDebugMode] = useState(false);
   const [hasUniswapStrategy, setHasUniswapStrategy] = useState(false);
   const [uniswapStrategies, setUniswapStrategies] = useState<any[]>([]);
   const [messages, setMessages] = useState<Message[]>([
@@ -101,7 +103,23 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => setDebugMode(!debugMode)}
+                    className="flex-shrink-0"
+                  >
+                    <Bug className="w-4 h-4 mr-2" />
+                    {debugMode ? "Debug On" : "Debug Off"}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs">
+                  <p>AI conversation only work for local environment, this just directly show support metrics and contract operations</p>
+                </TooltipContent>
+              </Tooltip>
               <Button
                 variant={layoutMode === "chat-only" ? "default" : "outline"}
                 size="sm"
@@ -137,7 +155,7 @@ export default function App() {
 
       {/* Main Content Area */}
       <div className="flex-1 overflow-hidden">
-        {layoutMode === "chat-only" ? (
+        {layoutMode === "chat-only" && !debugMode ? (
           <div className="h-full max-w-4xl mx-auto">
             <ChatInterface 
               messages={messages} 
@@ -145,6 +163,7 @@ export default function App() {
               onUniswapDetected={handleUniswapDetected}
               onNavigateToContract={handleNavigateToContract}
               onNavigateToData={handleNavigateToData}
+              debugMode={debugMode}
             />
           </div>
         ) : (
@@ -156,12 +175,16 @@ export default function App() {
                 onUniswapDetected={handleUniswapDetected}
                 onNavigateToContract={handleNavigateToContract}
                 onNavigateToData={handleNavigateToData}
+                debugMode={debugMode}
               />
             </ResizablePanel>
             <ResizableHandle withHandle />
             <ResizablePanel defaultSize={50} minSize={30}>
-              {layoutMode === "chat-data" ? (
-                <OnChainDataPanel uniswapStrategies={uniswapStrategies} />
+              {debugMode ? (
+                /* Debug mode: Show data panel only, contract panel will be in separate horizontal panel */
+                <OnChainDataPanel uniswapStrategies={uniswapStrategies} debugMode={debugMode} />
+              ) : layoutMode === "chat-data" ? (
+                <OnChainDataPanel uniswapStrategies={uniswapStrategies} debugMode={debugMode} />
               ) : hasUniswapStrategy ? (
                 <div id="contract-panel" className="h-full overflow-hidden">
                   <SmartContractPanel />
@@ -172,6 +195,16 @@ export default function App() {
                 </div>
               )}
             </ResizablePanel>
+            {debugMode && (
+              <>
+                <ResizableHandle withHandle />
+                <ResizablePanel defaultSize={33} minSize={25}>
+                  <div id="contract-panel" className="h-full overflow-hidden">
+                    <SmartContractPanel />
+                  </div>
+                </ResizablePanel>
+              </>
+            )}
           </ResizablePanelGroup>
         )}
       </div>
